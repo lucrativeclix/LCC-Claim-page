@@ -9,33 +9,37 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Ethers.js for Web3 -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
+<!-- WalletConnect -->
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider/dist/umd/index.min.js"></script>
+<!-- Google reCAPTCHA -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <style>
-    body {
-        font-family: 'Poppins', sans-serif;
-        background: linear-gradient(180deg, #0f0c29, #302b63, #24243e);
-        overflow-x: hidden;
-    }
-    .glow-text {
-        text-shadow: 0 0 10px #fff, 0 0 20px #ff6ec7, 0 0 30px #b0fffc;
-    }
-    .star {
-        position: absolute;
-        width: 2px;
-        height: 2px;
-        background: white;
-        border-radius: 50%;
-        animation: twinkle 3s infinite;
-    }
-    @keyframes twinkle {
-        0%,100% { opacity: 0.8; transform: scale(1); }
-        50% { opacity: 0.1; transform: scale(0.5); }
-    }
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(180deg, #0f0c29, #302b63, #24243e);
+    overflow-x: hidden;
+}
+.glow-text {
+    text-shadow: 0 0 10px #fff, 0 0 20px #ff6ec7, 0 0 30px #b0fffc;
+}
+.star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite;
+}
+@keyframes twinkle {
+    0%,100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 0.1; transform: scale(0.5); }
+}
 </style>
 </head>
 <body class="relative text-white">
 
-<!-- Stars Background -->
+<!-- Star Background -->
 <div id="stars"></div>
 <script>
 const starsContainer = document.getElementById('stars');
@@ -51,17 +55,31 @@ for(let i=0;i<150;i++){
 <!-- Header -->
 <header class="text-center py-16 relative z-10">
     <h1 class="text-5xl font-bold mb-4 glow-text animate-pulse">🌌 LucrativeClix Coin (LCC) 🚀</h1>
-    <p class="text-xl max-w-2xl mx-auto">Connect your wallet and claim your free LCC tokens every 12 hours. Safe, fast, and futuristic.</p>
+    <p class="text-xl max-w-2xl mx-auto">Connect your wallet or paste your address to claim free LCC tokens every 12 hours. Safe, fast, and futuristic.</p>
 </header>
 
-<!-- Claim Form Section -->
+<!-- Claim Form -->
 <section class="flex justify-center py-20 px-4 relative z-10">
-    <div class="bg-gray-900 bg-opacity-70 p-10 rounded-3xl shadow-2xl w-full max-w-lg backdrop-blur-sm">
-        <h2 class="text-3xl font-bold mb-6 text-center glow-text">💎 Claim LCC Tokens</h2>
-        <button id="connectWallet" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold mb-6 transition transform hover:scale-105">Connect Wallet</button>
-        <button id="claimButton" class="w-full bg-pink-500 hover:bg-pink-600 text-white py-4 rounded-xl font-bold transition transform hover:scale-105" disabled>Claim LCC</button>
-        <p id="status" class="mt-6 text-center font-semibold"></p>
-    </div>
+<div class="bg-gray-900 bg-opacity-70 p-10 rounded-3xl shadow-2xl w-full max-w-lg backdrop-blur-sm">
+    <h2 class="text-3xl font-bold mb-6 text-center glow-text">💎 Claim LCC Tokens</h2>
+
+    <!-- Connect Wallet Buttons -->
+    <button id="connectWallet" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold mb-4 transition transform hover:scale-105">Connect MetaMask</button>
+    <button id="walletConnect" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold mb-4 transition transform hover:scale-105">Connect via WalletConnect</button>
+
+    <!-- Manual Wallet Input -->
+    <input type="text" id="manualWallet" placeholder="Or paste your wallet address" 
+           class="w-full p-4 rounded-xl bg-gray-800 border border-purple-500 mb-4 focus:outline-none focus:ring-2 focus:ring-purple-400 text-white">
+
+    <!-- reCAPTCHA -->
+    <div class="g-recaptcha mb-4" data-sitekey="YOUR_RECAPTCHA_SITE_KEY" data-callback="enableClaim"></div>
+
+    <!-- Claim Button -->
+    <button id="claimButton" class="w-full bg-pink-500 hover:bg-pink-600 text-white py-4 rounded-xl font-bold transition transform hover:scale-105" disabled>Claim LCC</button>
+
+    <!-- Status Message -->
+    <p id="status" class="mt-6 text-center font-semibold"></p>
+</div>
 </section>
 
 <!-- Footer -->
@@ -80,10 +98,17 @@ const contractABI = [
 ];
 
 const connectWalletButton = document.getElementById('connectWallet');
+const walletConnectButton = document.getElementById('walletConnect');
 const claimButton = document.getElementById('claimButton');
+const manualWalletInput = document.getElementById('manualWallet');
 const status = document.getElementById('status');
 
-// Connect wallet
+// Enable claim button after reCAPTCHA
+function enableClaim(token) {
+    claimButton.disabled = false;
+}
+
+// Connect MetaMask
 connectWalletButton.addEventListener('click', async () => {
     if (window.ethereum) {
         try {
@@ -91,7 +116,7 @@ connectWalletButton.addEventListener('click', async () => {
             await provider.send("eth_requestAccounts", []);
             signer = await provider.getSigner();
             userAddress = await signer.getAddress();
-            status.textContent = `✅ Connected: ${userAddress}`;
+            status.textContent = `✅ Connected: ${userAddress.substring(0,6)}...${userAddress.slice(-4)}`;
             claimButton.disabled = false;
         } catch (err) {
             status.textContent = `⚠️ Wallet connection failed: ${err.message}`;
@@ -101,15 +126,41 @@ connectWalletButton.addEventListener('click', async () => {
     }
 });
 
-// Claim tokens
+// Connect via WalletConnect
+walletConnectButton.addEventListener('click', async () => {
+    try {
+        const WalletConnectProvider = window.WalletConnectProvider.default;
+        provider = new WalletConnectProvider({
+            rpc: {11155111: "https://sepolia.infura.io/v3/YOUR_INFURA_KEY"}
+        });
+        await provider.enable();
+        signer = new ethers.BrowserProvider(provider).getSigner();
+        userAddress = await signer.getAddress();
+        status.textContent = `✅ Connected via WalletConnect: ${userAddress.substring(0,6)}...${userAddress.slice(-4)}`;
+        claimButton.disabled = false;
+    } catch (err) {
+        status.textContent = `⚠️ WalletConnect failed: ${err.message}`;
+    }
+});
+
+// Claim LCC
 claimButton.addEventListener('click', async () => {
-    if (!signer) return;
+    let recipient = manualWalletInput.value.trim() || userAddress;
+
+    if (!recipient || !/^0x[a-fA-F0-9]{40}$/.test(recipient)) {
+        status.textContent = "⚠️ Invalid wallet address!";
+        return;
+    }
+
     try {
         status.textContent = "⏳ Claiming LCC...";
         const contract = new ethers.Contract(contractAddress, contractABI, signer);
-        const tx = await contract.claim(userAddress);
-        await tx.wait();
-        status.textContent = `🎉 Success! LCC claimed to ${userAddress}`;
+        const tx = await contract.claim(recipient);
+        const receipt = await tx.wait();
+
+        // Example: hardcoded value, replace with event from your contract
+        const claimedAmount = 100;
+        status.textContent = `🎉 Success! ${claimedAmount} LCC claimed to ${recipient}`;
     } catch (err) {
         status.textContent = `❌ Claim failed: ${err.message}`;
     }
@@ -117,4 +168,4 @@ claimButton.addEventListener('click', async () => {
 </script>
 
 </body>
-  </html>
+    </html>
