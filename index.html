@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LCC Claim Portal</title>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Ethers.js for Web3 -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
+
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(180deg, #0f0c29, #302b63, #24243e);
+        overflow-x: hidden;
+    }
+    .glow-text {
+        text-shadow: 0 0 10px #fff, 0 0 20px #ff6ec7, 0 0 30px #b0fffc;
+    }
+    .star {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        background: white;
+        border-radius: 50%;
+        animation: twinkle 3s infinite;
+    }
+    @keyframes twinkle {
+        0%,100% { opacity: 0.8; transform: scale(1); }
+        50% { opacity: 0.1; transform: scale(0.5); }
+    }
+</style>
+</head>
+<body class="relative text-white">
+
+<!-- Stars Background -->
+<div id="stars"></div>
+<script>
+const starsContainer = document.getElementById('stars');
+for(let i=0;i<150;i++){
+    const star = document.createElement('div');
+    star.classList.add('star');
+    star.style.top = Math.random() * window.innerHeight + 'px';
+    star.style.left = Math.random() * window.innerWidth + 'px';
+    starsContainer.appendChild(star);
+}
+</script>
+
+<!-- Header -->
+<header class="text-center py-16 relative z-10">
+    <h1 class="text-5xl font-bold mb-4 glow-text animate-pulse">🌌 LucrativeClix Coin (LCC) 🚀</h1>
+    <p class="text-xl max-w-2xl mx-auto">Connect your wallet and claim your free LCC tokens every 12 hours. Safe, fast, and futuristic.</p>
+</header>
+
+<!-- Claim Form Section -->
+<section class="flex justify-center py-20 px-4 relative z-10">
+    <div class="bg-gray-900 bg-opacity-70 p-10 rounded-3xl shadow-2xl w-full max-w-lg backdrop-blur-sm">
+        <h2 class="text-3xl font-bold mb-6 text-center glow-text">💎 Claim LCC Tokens</h2>
+        <button id="connectWallet" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold mb-6 transition transform hover:scale-105">Connect Wallet</button>
+        <button id="claimButton" class="w-full bg-pink-500 hover:bg-pink-600 text-white py-4 rounded-xl font-bold transition transform hover:scale-105" disabled>Claim LCC</button>
+        <p id="status" class="mt-6 text-center font-semibold"></p>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="py-12 text-center text-gray-400 relative z-10">
+    <p>© 2025 LucrativeClix Coin | Build first. Launch right.</p>
+</footer>
+
+<script>
+let provider, signer, userAddress;
+
+// LCC Contract
+const contractAddress = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
+const contractABI = [
+    "function claim(address recipient) public",
+    "function balanceOf(address account) view returns (uint256)"
+];
+
+const connectWalletButton = document.getElementById('connectWallet');
+const claimButton = document.getElementById('claimButton');
+const status = document.getElementById('status');
+
+// Connect wallet
+connectWalletButton.addEventListener('click', async () => {
+    if (window.ethereum) {
+        try {
+            provider = new ethers.BrowserProvider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = await provider.getSigner();
+            userAddress = await signer.getAddress();
+            status.textContent = `✅ Connected: ${userAddress}`;
+            claimButton.disabled = false;
+        } catch (err) {
+            status.textContent = `⚠️ Wallet connection failed: ${err.message}`;
+        }
+    } else {
+        status.textContent = "⚠️ MetaMask not detected!";
+    }
+});
+
+// Claim tokens
+claimButton.addEventListener('click', async () => {
+    if (!signer) return;
+    try {
+        status.textContent = "⏳ Claiming LCC...";
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+        const tx = await contract.claim(userAddress);
+        await tx.wait();
+        status.textContent = `🎉 Success! LCC claimed to ${userAddress}`;
+    } catch (err) {
+        status.textContent = `❌ Claim failed: ${err.message}`;
+    }
+});
+</script>
+
+</body>
+  </html>
