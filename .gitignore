@@ -1,0 +1,15 @@
+# Node modules
+node_modules/
+
+# Next.js build folder
+.next/
+
+# VSCode settings
+.vscode/
+
+# Environment files
+.env
+
+# Logs
+*.log
+
