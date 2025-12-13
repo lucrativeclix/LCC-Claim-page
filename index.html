@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>LucrativeClix Coin (LCC) Claim Portal</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LucrativeClix Coin — LCC Faucet</title>
 
 <!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -11,37 +11,59 @@
 <!-- Ethers v6 -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
 
-<!-- WalletConnect (MODERN + WORKING) -->
+<!-- WalletConnect v2 -->
 <script type="module">
   import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
   window.EthereumProvider = EthereumProvider;
 </script>
 
-<!-- Google reCAPTCHA -->
+<!-- reCAPTCHA (disable in dev if needed) -->
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <style>
-body {
+html,body{
+  margin:0;
+  padding:0;
+  height:100%;
+  overflow-x:hidden;
   font-family: 'Poppins', sans-serif;
-  background: url("https://images.unsplash.com/photo-1601758123927-9d021f7dfeb7?auto=format&fit=crop&w=1920&q=80") no-repeat center center fixed;
-  background-size: cover;
-  color: white;
-  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),
+    radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),
+    radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),
+    #02010a;
+  color:white;
 }
-.glow {
-  text-shadow: 0 0 10px #ff6ec7, 0 0 20px #6a00ff;
+
+/* Stars */
+#stars{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
 }
-.star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: white;
-  border-radius: 50%;
-  animation: twinkle 3s infinite;
+.star{
+  position:absolute;
+  width:2px;
+  height:2px;
+  background:white;
+  opacity:.8;
+  border-radius:50%;
+  animation:twinkle 3s infinite ease-in-out;
 }
-@keyframes twinkle {
-  0%,100% {opacity: .8}
-  50% {opacity: .2}
+@keyframes twinkle{
+  0%,100%{opacity:.8}
+  50%{opacity:.2}
+}
+
+.glow{
+  text-shadow:0 0 15px #b300ff,0 0 30px #ff2fd1;
+}
+
+.card{
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(14px);
+  border-radius:24px;
 }
 </style>
 </head>
@@ -50,139 +72,134 @@ body {
 
 <div id="stars"></div>
 
-<header class="text-center py-16">
-  <h1 class="text-5xl font-bold glow">🌌 LucrativeClix Coin (LCC)</h1>
-  <p class="mt-4 text-lg">Claim free LCC every 12 hours on Sepolia</p>
+<header class="text-center py-16 relative z-10">
+  <h1 class="text-5xl font-extrabold glow">🌌 LucrativeClix Coin</h1>
+  <p class="mt-4 text-lg text-gray-200">Claim free LCC every 12 hours — Sepolia</p>
 </header>
 
-<section class="flex justify-center px-4">
-  <div class="bg-black/70 p-8 rounded-3xl max-w-lg w-full backdrop-blur-xl shadow-2xl">
+<section class="flex justify-center px-4 relative z-10">
+  <div class="card p-8 max-w-lg w-full shadow-2xl">
 
-    <button id="metaMaskBtn" class="w-full bg-purple-600 py-3 rounded-xl mb-3 font-bold hover:scale-105 transition">
-      Connect MetaMask
+    <button id="mmBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-3 hover:scale-105 transition">
+      🦊 Connect MetaMask
     </button>
 
-    <button id="walletConnectBtn" class="w-full bg-indigo-600 py-3 rounded-xl mb-4 font-bold hover:scale-105 transition">
-      Connect WalletConnect
+    <button id="wcBtn" class="w-full bg-indigo-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">
+      🔗 WalletConnect
     </button>
 
-    <div class="g-recaptcha mb-4" data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
+    <!-- reCAPTCHA -->
+    <div id="captchaBox" class="mb-4">
+      <div class="g-recaptcha" data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
+    </div>
 
     <button id="claimBtn" disabled class="w-full bg-pink-500 py-3 rounded-xl font-bold hover:scale-105 transition">
-      Claim LCC
+      🚀 Claim LCC
     </button>
 
     <p id="status" class="mt-4 text-center"></p>
-    <p id="balance" class="mt-2 text-center font-bold"></p>
 
-    <img id="celebrate" src="https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"
-         class="mx-auto mt-6 hidden w-64"/>
+    <div id="celebrate" class="hidden mt-6 text-center text-3xl glow">
+      ✨ CLAIM SUCCESS ✨
+    </div>
   </div>
 </section>
 
-<footer class="text-center mt-16 text-gray-300">
-  © 2025 LucrativeClix Coin — Build First. Launch Right.
+<footer class="text-center py-12 text-gray-400 relative z-10">
+  © 2025 LucrativeClix Coin
 </footer>
 
 <script>
-/* ⭐ Stars */
-const s = document.getElementById("stars");
-for(let i=0;i<120;i++){
-  const d=document.createElement("div");
-  d.className="star";
-  d.style.top=Math.random()*innerHeight+"px";
-  d.style.left=Math.random()*innerWidth+"px";
-  s.appendChild(d);
+/* Stars */
+const stars=document.getElementById("stars");
+for(let i=0;i<150;i++){
+  const s=document.createElement("div");
+  s.className="star";
+  s.style.top=Math.random()*100+"%";
+  s.style.left=Math.random()*100+"%";
+  s.style.animationDelay=Math.random()*3+"s";
+  stars.appendChild(s);
 }
 
-/* ================= CONFIG ================= */
+/* ===== CONFIG ===== */
+const CHAIN_ID = 11155111; // Sepolia
 
-/* 🔴 YOU MUST FILL THESE 2 VALUES 🔴 */
-const INFURA_PROJECT_ID = "c36e33ca4a8f4828a1517ab6249690b2"; // OK
-const LCC_CONTRACT = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
-
-/* Sepolia */
-const CHAIN_ID = 11155111;
-
-/* ABI MUST MATCH YOUR CONTRACT */
-const ABI = [
-  "function claim(address to) external",
-  "function balanceOf(address user) view returns (uint256)",
-  "function decimals() view returns (uint8)"
+// ⚠️ REQUIRED
+const FAUCET_ADDRESS = "0xYOUR_FAUCET_ADDRESS";
+const FAUCET_ABI = [
+  "function claim() external",
+  "function nextClaim(address) view returns(uint256)"
 ];
 
-/* ========================================== */
+// WalletConnect PROJECT ID (NOT Infura)
+const WC_PROJECT_ID = "PUT_WALLETCONNECT_PROJECT_ID_HERE";
+
+/* Toggle reCAPTCHA for testing */
+const CAPTCHA_REQUIRED = true;
+/* ================== */
 
 let provider, signer, user;
 
-const status = document.getElementById("status");
-const balanceEl = document.getElementById("balance");
-const claimBtn = document.getElementById("claimBtn");
-const celebrate = document.getElementById("celebrate");
+const status=document.getElementById("status");
+const claimBtn=document.getElementById("claimBtn");
+const celebrate=document.getElementById("celebrate");
 
-/* -------- MetaMask -------- */
-document.getElementById("metaMaskBtn").onclick = async () => {
+if(!CAPTCHA_REQUIRED){
+  document.getElementById("captchaBox").style.display="none";
+}
+
+/* MetaMask */
+mmBtn.onclick=async()=>{
   if(!window.ethereum){
     status.textContent="❌ MetaMask not installed";
     return;
   }
-  provider = new ethers.BrowserProvider(window.ethereum);
+  provider=new ethers.BrowserProvider(window.ethereum);
   await provider.send("eth_requestAccounts",[]);
-  signer = await provider.getSigner();
-  user = await signer.getAddress();
+  signer=await provider.getSigner();
+  user=await signer.getAddress();
   ready("MetaMask connected");
 };
 
-/* -------- WalletConnect -------- */
-document.getElementById("walletConnectBtn").onclick = async () => {
-  const wc = await window.EthereumProvider.init({
-    projectId: INFURA_PROJECT_ID,
-    chains: [CHAIN_ID],
-    rpcMap: {
-      [CHAIN_ID]: `https://sepolia.infura.io/v3/${INFURA_PROJECT_ID}`
+/* WalletConnect */
+wcBtn.onclick=async()=>{
+  const wc=await window.EthereumProvider.init({
+    projectId: WC_PROJECT_ID,
+    chains:[CHAIN_ID],
+    rpcMap:{
+      [CHAIN_ID]:"https://sepolia.infura.io/v3/c36e33ca4a8f4828a1517ab6249690b2"
     }
   });
   await wc.enable();
-  provider = new ethers.BrowserProvider(wc);
-  signer = await provider.getSigner();
-  user = await signer.getAddress();
+  provider=new ethers.BrowserProvider(wc);
+  signer=await provider.getSigner();
+  user=await signer.getAddress();
   ready("WalletConnect connected");
 };
 
-/* -------- Ready -------- */
-async function ready(msg){
-  status.textContent = `✅ ${msg}: ${user}`;
-  claimBtn.disabled = false;
-  await loadBalance();
+function ready(msg){
+  status.textContent=`✅ ${msg}: ${user}`;
+  claimBtn.disabled=false;
 }
 
-/* -------- Balance -------- */
-async function loadBalance(){
-  const c = new ethers.Contract(LCC_CONTRACT, ABI, provider);
-  const bal = await c.balanceOf(user);
-  const dec = await c.decimals();
-  balanceEl.textContent = `💰 Balance: ${ethers.formatUnits(bal, dec)} LCC`;
-}
-
-/* -------- Claim -------- */
-claimBtn.onclick = async () => {
-  if(grecaptcha.getResponse().length === 0){
+/* Claim */
+claimBtn.onclick=async()=>{
+  if(CAPTCHA_REQUIRED && grecaptcha.getResponse().length===0){
     status.textContent="⚠️ Complete reCAPTCHA";
     return;
   }
   try{
     status.textContent="⏳ Claiming...";
-    const c = new ethers.Contract(LCC_CONTRACT, ABI, signer);
-    const tx = await c.claim(user);
+    const c=new ethers.Contract(FAUCET_ADDRESS,FAUCET_ABI,signer);
+    const tx=await c.claim();
     await tx.wait();
-    status.textContent="🎉 Claim successful!";
     celebrate.classList.remove("hidden");
-    loadBalance();
+    status.textContent="🎉 LCC claimed!";
   }catch(e){
-    status.textContent="❌ Claim failed (cooldown or no tokens)";
+    status.textContent="❌ Cooldown active or faucet empty";
   }
 };
 </script>
 
 </body>
-    </html>
+  </html>
