@@ -5,31 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LucrativeClix Coin — LCC Faucet</title>
 
-<!-- Tailwind -->
+<!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
 
 <!-- Ethers v6 -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
 
-<!-- WalletConnect v2 -->
+<!-- Web3Modal v2 -->
 <script type="module">
-  import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
-  window.EthereumProvider = EthereumProvider;
+  import { Web3Modal } from "https://unpkg.com/@web3modal/standalone@2.7.2/dist/index.js";
+  window.Web3Modal = Web3Modal;
 </script>
 
 <!-- reCAPTCHA -->
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <style>
-html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;background:radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),#02010a;color:white;}
+html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;background:radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),#02010a;color:white;overflow-x:hidden;}
 #stars{position:fixed;inset:0;z-index:0;pointer-events:none}.star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:.8;animation:twinkle 3s infinite}@keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.2}}
 .glow{text-shadow:0 0 15px #b300ff,0 0 30px #ff2fd1}
 .card{background:rgba(0,0,0,.65);backdrop-filter:blur(14px);border-radius:24px}
+
 /* Eclipse Loader */
-.eclipse{position:relative;width:120px;height:120px}
+.eclipse{position:relative;width:120px;height:120px;margin:auto}
 .sun{position:absolute;inset:0;background:radial-gradient(circle,#ffd700,#ff9800);border-radius:50%;box-shadow:0 0 30px #ff9800}
 .moon{position:absolute;inset:0;background:#02010a;border-radius:50%;transform:translateX(-120%);animation:eclipseMove 2s linear infinite}
 @keyframes eclipseMove{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+
+/* Celebration Stars */
+.celebration-star{
+  position:absolute;
+  border-radius:50%;
+  opacity:0.9;
+  pointer-events:none;
+  animation:shoot 1.5s linear forwards;
+}
+@keyframes shoot{
+  0%{transform:translate(0,0) scale(0.5);opacity:1;}
+  100%{transform:translate(var(--x), var(--y)) scale(1.5);opacity:0;}
+}
 </style>
 </head>
 <body>
@@ -44,8 +58,7 @@ html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;back
 <section class="flex justify-center px-4 relative z-10">
   <div class="card p-8 max-w-lg w-full shadow-2xl">
 
-    <button id="mmBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-3 hover:scale-105 transition">🦊 Connect MetaMask</button>
-    <button id="wcBtn" class="w-full bg-indigo-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🔗 WalletConnect</button>
+    <button id="connectBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🦊 Connect Wallet</button>
 
     <div class="mb-4">
       <div class="g-recaptcha" data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
@@ -53,7 +66,7 @@ html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;back
 
     <button id="claimBtn" disabled class="w-full bg-pink-500 py-3 rounded-xl font-bold hover:scale-105 transition">🚀 Claim LCC</button>
 
-    <p id="balance" class="mt-4 text-center text-green-400">Balance: 0 LCC</p>
+    <p id="balance" class="mt-4 text-center text-green-400">Balance: — LCC</p>
     <p id="status" class="mt-2 text-center"></p>
 
     <div id="eclipseLoader" class="hidden mt-6 flex flex-col items-center">
@@ -68,8 +81,28 @@ html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;back
 
 <footer class="text-center py-12 text-gray-400 relative z-10">© 2025 LucrativeClix Coin</footer>
 
-<script>
-/* Stars */
+<script type="module">
+import { Web3Modal } from "https://unpkg.com/@web3modal/standalone@2.7.2/dist/index.js";
+
+/* CONFIG */
+const CHAIN_ID = 11155111;
+const FAUCET_ADDRESS = "0x2c51c89b40b354614e77f9f5e75ccb36c1e43c49";
+const LCC_TOKEN_ADDRESS = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a"; // Replace with your LCC token
+const FAUCET_ABI = ["function claim() external"];
+const ERC20_ABI = ["function balanceOf(address) view returns(uint256)","function decimals() view returns(uint8)"];
+const WC_PROJECT_ID = "6e7e3a7f736b30fcd2d054bdfbe17bc6";
+
+let provider, signer, user;
+
+const connectBtn = document.getElementById("connectBtn");
+const claimBtn = document.getElementById("claimBtn");
+const status = document.getElementById("status");
+const celebrate = document.getElementById("celebrate");
+const loader = document.getElementById("eclipseLoader");
+const loadPercent = document.getElementById("loadPercent");
+const balanceP = document.getElementById("balance");
+
+/* Stars background */
 const stars=document.getElementById("stars");
 for(let i=0;i<150;i++){
   const s=document.createElement("div");
@@ -79,25 +112,6 @@ for(let i=0;i<150;i++){
   s.style.animationDelay=Math.random()*3+"s";
   stars.appendChild(s);
 }
-
-/* CONFIG */
-const CHAIN_ID=11155111;
-const FAUCET_ADDRESS="0x2c51c89b40b354614e77f9f5e75ccb36c1e43c49";
-const LCC_TOKEN_ADDRESS="0xYOUR_LCC_TOKEN_ADDRESS_HERE"; // Replace with your LCC token contract
-const FAUCET_ABI=["function claim() external"];
-const ERC20_ABI=["function balanceOf(address) view returns(uint256)","function decimals() view returns(uint8)"];
-const WC_PROJECT_ID="6e7e3a7f736b30fcd2d054bdfbe17bc6";
-
-let provider,signer,user;
-
-const mmBtn=document.getElementById("mmBtn");
-const wcBtn=document.getElementById("wcBtn");
-const claimBtn=document.getElementById("claimBtn");
-const status=document.getElementById("status");
-const celebrate=document.getElementById("celebrate");
-const loader=document.getElementById("eclipseLoader");
-const loadPercent=document.getElementById("loadPercent");
-const balanceP=document.getElementById("balance");
 
 /* Loader */
 function startLoader(){
@@ -115,57 +129,50 @@ function stopLoader(){
   loadPercent.textContent="0%";
 }
 
-/* Balance */
+/* Update balance */
 async function updateBalance(){
   if(!signer) return;
   try{
     const token=new ethers.Contract(LCC_TOKEN_ADDRESS,ERC20_ABI,provider);
-    const b=await token.balanceOf(user);
+    const rawBalance=await token.balanceOf(user);
     const decimals=await token.decimals();
-    balanceP.textContent=`Balance: ${Number(b)/10**decimals} LCC`;
+    balanceP.textContent=`Balance: ${Number(rawBalance)/10**decimals} LCC`;
   }catch(e){
-    console.log("Balance fetch failed",e);
+    console.error("Balance fetch failed", e);
+    balanceP.textContent="Balance: Error";
   }
 }
 
-/* MetaMask */
-mmBtn.onclick=async()=>{
-  try{
-    status.textContent="⏳ Connecting MetaMask...";
-    provider=new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
-    signer=await provider.getSigner();
-    user=await signer.getAddress();
-    claimBtn.disabled=false;
-    status.textContent="✅ Connected: "+user;
-    await updateBalance();
-  }catch(e){
-    status.textContent="❌ MetaMask failed";
-  }
-};
+/* Web3Modal Connect */
+let web3Modal;
 
-/* WalletConnect */
-wcBtn.onclick=async()=>{
+async function initWeb3Modal(){
+  web3Modal = new Web3Modal({
+    projectId: WC_PROJECT_ID,
+    theme: "dark",
+    accentColor: "purple",
+    ethereum: { appName: "LCC Faucet", chains: [CHAIN_ID] }
+  });
+}
+await initWeb3Modal();
+
+connectBtn.onclick = async () => {
   try{
-    status.textContent="⏳ Connecting WalletConnect...";
-    const wc=await window.EthereumProvider.init({
-      projectId:WC_PROJECT_ID,
-      chains:[CHAIN_ID]
-    });
-    await wc.enable();
-    provider=new ethers.BrowserProvider(wc);
-    signer=await provider.getSigner();
-    user=await signer.getAddress();
-    claimBtn.disabled=false;
-    status.textContent="✅ Connected: "+user;
-    await updateBalance();
+    status.textContent="⏳ Connecting wallet...";
+    const connection = await web3Modal.connect();
+    provider = new ethers.BrowserProvider(connection);
+    signer = await provider.getSigner();
+    user = await signer.getAddress();
+    status.textContent = "✅ Connected: " + user;
+    claimBtn.disabled = false;
   }catch(e){
-    status.textContent="❌ WalletConnect failed";
+    console.error(e);
+    status.textContent="❌ Wallet connection failed";
   }
 };
 
 /* Claim */
-claimBtn.onclick=async()=>{
+claimBtn.onclick = async () => {
   if(grecaptcha.getResponse().length===0){
     status.textContent="⚠️ Complete reCAPTCHA";
     return;
@@ -175,20 +182,22 @@ claimBtn.onclick=async()=>{
     status.textContent="🌑 Aligning eclipse...";
     await startLoader();
 
-    const c=new ethers.Contract(FAUCET_ADDRESS,FAUCET_ABI,signer);
-    const tx=await c.claim();
+    const c = new ethers.Contract(FAUCET_ADDRESS, FAUCET_ABI, signer);
+    const tx = await c.claim();
     status.textContent="⛓️ Broadcasting transaction...";
     await tx.wait();
 
     stopLoader();
+    triggerCelebration(); // <-- new celebration function
     celebrate.classList.remove("hidden");
     status.textContent="🎉 LCC Claimed!";
     await updateBalance();
+
     startCooldown(12*60*60);
-    grecaptcha.reset(); // Reset CAPTCHA after successful claim
+    grecaptcha.reset();
   }catch(e){
     stopLoader();
-    console.log(e);
+    console.error(e);
     status.textContent="❌ Cooldown active or faucet empty";
     claimBtn.disabled=false;
   }
@@ -210,6 +219,26 @@ function startCooldown(sec){
       status.textContent="🚀 You can claim again!";
     }
   },1000);
+}
+
+/* Starburst Celebration */
+function triggerCelebration(){
+  for(let i=0;i<50;i++){
+    const star=document.createElement("div");
+    star.className="celebration-star";
+    const size=Math.random()*6 + 4; // 4px to 10px
+    star.style.width=size+"px";
+    star.style.height=size+"px";
+    star.style.background=["#FFD700","#FF2FD1","#00E5FF","#FFFFFF"][Math.floor(Math.random()*4)];
+    star.style.left="50%";
+    star.style.top="50%";
+    const angle=Math.random()*2*Math.PI;
+    const distance=Math.random()*150+50;
+    star.style.setProperty('--x', distance*Math.cos(angle)+'px');
+    star.style.setProperty('--y', distance*Math.sin(angle)+'px');
+    document.body.appendChild(star);
+    setTimeout(()=>star.remove(),1500);
+  }
 }
 </script>
 </body>
