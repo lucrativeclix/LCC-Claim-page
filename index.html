@@ -1,103 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LucrativeClix Coin Faucet</title>
-
 <!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Ethers -->
+<!-- Ethers v6 -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
-
-<!-- WalletConnect -->
+<!-- WalletConnect v2 -->
 <script type="module">
   import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
   window.EthereumProvider = EthereumProvider;
 </script>
-
 <!-- reCAPTCHA -->
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-
 <style>
-body {
-  background: radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),
-              radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),
-              radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),
-              #02010a;
-  color: white;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-#stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-.star { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; opacity: .8; animation: twinkle 3s infinite; }
-@keyframes twinkle { 0%,100%{opacity:.8} 50%{opacity:.2} }
-.card {
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(14px);
-  border-radius: 24px;
-}
-.eclipse {
-  position: relative;
-  width: 120px;
-  height: 120px;
-}
-.sun {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle,#ffd700,#ff9800);
-  border-radius: 50%;
-}
-.moon {
-  position: absolute;
-  inset: 0;
-  background: #02010a;
-  border-radius: 50%;
-  animation: eclipse 2s linear infinite;
-}
-@keyframes eclipse {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(120%); }
-}
-.glow {
-  text-shadow: 0 0 15px #b300ff, 0 0 30px #ff2fd1;
-}
+html,body{margin:0;padding:0;height:100%;font-family:'Poppins',sans-serif;background:radial-gradient(circle at 20% 20%,#6a00ff,transparent 40%),radial-gradient(circle at 80% 30%,#ff2fd1,transparent 45%),radial-gradient(circle at 50% 80%,#00e5ff,transparent 40%),#02010a;color:white;overflow-x:hidden;}
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:.8;animation:twinkle 3s infinite ease-in-out;}
+@keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.2}}
+.card{background:rgba(0,0,0,.65);backdrop-filter:blur(14px);border-radius:24px;}
+.eclipse{position:relative;width:120px;height:120px;margin:auto;}
+.sun{position:absolute;inset:0;background:radial-gradient(circle,#ffd700,#ff9800);border-radius:50%;}
+.moon{position:absolute;inset:0;background:#02010a;border-radius:50%;transform:translateX(-120%);animation:eclipseMove 2s linear infinite;}
+@keyframes eclipseMove{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);backdrop-filter:blur(14px);border-radius:24px;padding:24px;z-index:50;display:none;}
+.popup.show{display:block;}
+button:disabled{opacity:0.5;cursor:not-allowed;}
 </style>
 </head>
-
 <body>
-
 <div id="stars"></div>
 
 <header class="text-center py-14 relative z-10">
   <h1 class="text-5xl font-extrabold glow">🌌 LucrativeClix Coin</h1>
-  <p class="mt-3 text-gray-200">Official LCC Faucet • Sepolia Testnet</p>
+  <p class="mt-4 text-lg text-gray-200">Claim free LCC every 12 hours — Sepolia</p>
 </header>
 
 <main class="flex justify-center px-4 relative z-10">
   <div class="card p-8 max-w-lg w-full shadow-2xl">
+    <button id="walletBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🔗 Connect Wallet</button>
+    <div id="walletInfo" class="text-sm text-center mb-4 text-gray-300">🔌 Wallet not connected</div>
 
-    <div id="walletInfo" class="text-sm text-center mb-4 text-gray-300">
-      🔌 Wallet not connected
-    </div>
-
-    <button id="mmBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-3 hover:scale-105 transition">
-      🦊 Connect MetaMask
-    </button>
-
-    <button id="wcBtn" class="w-full bg-indigo-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">
-      🔗 WalletConnect
-    </button>
-
-    <div class="mb-4">
+    <div id="captchaBox" class="mb-4">
       <div class="g-recaptcha" data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
     </div>
 
-    <button id="claimBtn" disabled class="w-full bg-pink-500 py-3 rounded-xl font-bold opacity-50 cursor-not-allowed">
-      🚀 Claim 0.1 LCC
-    </button>
+    <button id="claimBtn" disabled class="w-full bg-pink-500 py-3 rounded-xl font-bold hover:scale-105 transition">🚀 Claim 0.1 LCC</button>
 
+    <p id="balance" class="mt-4 text-center text-green-400">Balance: -</p>
     <p id="status" class="mt-4 text-center text-sm"></p>
 
     <div id="loader" class="hidden mt-6 flex flex-col items-center">
@@ -108,106 +60,182 @@ body {
       <p id="progress" class="mt-3 text-sm">0%</p>
     </div>
 
-    <div id="success" class="hidden mt-6 text-center text-2xl glow">
-      ✨ LCC Sent Successfully ✨
-    </div>
-
+    <div id="success" class="hidden mt-6 text-center text-2xl glow">✨ LCC Sent Successfully ✨</div>
   </div>
 </main>
 
-<footer class="text-center py-10 text-gray-400 relative z-10">
-  © 2025 LucrativeClix Coin
-</footer>
+<div id="walletPopup" class="popup">
+  <h2 class="text-xl font-bold mb-4">Select Wallet</h2>
+  <div class="flex flex-col gap-3">
+    <button id="mmBtn" class="bg-orange-500 py-2 rounded-xl font-bold hover:scale-105 transition">🦊 MetaMask</button>
+    <button id="wcBtn" class="bg-indigo-500 py-2 rounded-xl font-bold hover:scale-105 transition">🔗 WalletConnect</button>
+  </div>
+</div>
+
+<footer class="text-center py-10 text-gray-400 relative z-10">© 2025 LucrativeClix Coin</footer>
 
 <script>
-/* STARFIELD */
-const stars = document.getElementById("stars");
-for (let i = 0; i < 180; i++) {
-  const s = document.createElement("div");
-  s.className = "star";
-  s.style.top = Math.random() * 100 + "%";
-  s.style.left = Math.random() * 100 + "%";
-  s.style.animationDelay = Math.random() * 3 + "s";
+/* Stars */
+const stars=document.getElementById("stars");
+for(let i=0;i<180;i++){
+  const s=document.createElement("div");
+  s.className="star";
+  s.style.top=Math.random()*100+"%";
+  s.style.left=Math.random()*100+"%";
+  s.style.animationDelay=Math.random()*3+"s";
   stars.appendChild(s);
 }
 
+/* CONFIG */
+const CHAIN_ID = 11155111;
+const FAUCET_ADDRESS = "0x2c51c89b40b354614e77f9f5e75ccb36c1e43c49";
+const LCC_TOKEN_ADDRESS = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
+const FAUCET_ABI = ["function claim() external"];
+const ERC20_ABI = ["function balanceOf(address) view returns(uint256)","function decimals() view returns(uint8)"];
+const WC_PROJECT_ID = "6e7e3a7f736b30fcd2d054bdfbe17bc6";
+const CAPTCHA_REQUIRED = true;
+
 /* GLOBAL STATE */
 let provider, signer, userAddress;
-const walletInfo = document.getElementById("walletInfo");
+
+/* DOM */
+const walletBtn = document.getElementById("walletBtn");
+const mmBtn = document.getElementById("mmBtn");
+const wcBtn = document.getElementById("wcBtn");
+const walletPopup = document.getElementById("walletPopup");
 const claimBtn = document.getElementById("claimBtn");
 const statusEl = document.getElementById("status");
+const balanceP = document.getElementById("balance");
 const loader = document.getElementById("loader");
 const progress = document.getElementById("progress");
 const success = document.getElementById("success");
 
-/* NETWORK */
-const SEPOLIA_ID = "0xaa36a7";
+/* Show wallet popup */
+walletBtn.onclick = () => walletPopup.classList.add("show");
 
-/* CONNECT METAMASK */
+/* MetaMask */
 async function connectMetaMask() {
-  if (!window.ethereum) return statusEl.textContent = "❌ MetaMask not found";
+  if(!window.ethereum){
+    alert("MetaMask not installed!");
+    return;
+  }
+  walletPopup.classList.remove("show");
+  statusEl.textContent="⏳ Connecting MetaMask...";
   provider = new ethers.BrowserProvider(window.ethereum);
   await provider.send("eth_requestAccounts", []);
-  await window.ethereum.request({
-    method: "wallet_switchEthereumChain",
-    params: [{ chainId: SEPOLIA_ID }]
-  });
+  await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0xaa36a7"}]});
   signer = await provider.getSigner();
   userAddress = await signer.getAddress();
-  walletInfo.textContent = "✅ Connected: " + userAddress;
+  document.getElementById("walletInfo").textContent = "✅ Connected: " + userAddress;
   enableClaim();
+  updateBalance();
 }
 
-/* WALLETCONNECT */
+/* WalletConnect */
 async function connectWalletConnect() {
+  walletPopup.classList.remove("show");
+  statusEl.textContent="⏳ Connecting WalletConnect...";
   const wc = await window.EthereumProvider.init({
-    projectId: "6e7e3a7f736b30fcd2d054bdfbe17bc6",
-    chains: [11155111],
+    projectId: WC_PROJECT_ID,
+    chains: [CHAIN_ID],
     showQrModal: true
   });
   await wc.enable();
   provider = new ethers.BrowserProvider(wc);
   signer = await provider.getSigner();
   userAddress = await signer.getAddress();
-  walletInfo.textContent = "✅ Connected: " + userAddress;
+  document.getElementById("walletInfo").textContent = "✅ Connected: " + userAddress;
   enableClaim();
+  updateBalance();
 }
 
+/* Enable claim button */
 function enableClaim() {
   claimBtn.disabled = false;
-  claimBtn.classList.remove("opacity-50","cursor-not-allowed");
 }
 
-/* CLAIM */
-async function claim() {
-  if (!grecaptcha.getResponse()) {
-    return statusEl.textContent = "⚠️ Complete reCAPTCHA";
-  }
-
+/* Loader */
+function startLoader(){
   loader.classList.remove("hidden");
   let p = 0;
-  const timer = setInterval(() => {
-    p++;
-    progress.textContent = p + "%";
-    if (p >= 100) clearInterval(timer);
-  }, 20);
-
-  await fetch("/api/claim", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ wallet: userAddress })
+  return new Promise(res => {
+    const timer = setInterval(()=>{
+      p++; progress.textContent = p + "%";
+      if(p>=100){clearInterval(timer);res();}
+    },30);
   });
-
+}
+function stopLoader(){
   loader.classList.add("hidden");
-  success.classList.remove("hidden");
-  statusEl.textContent = "🎉 Faucet completed";
+  progress.textContent = "0%";
+}
+
+/* Balance */
+async function updateBalance(){
+  if(!signer) return;
+  try{
+    const token = new ethers.Contract(LCC_TOKEN_ADDRESS, ERC20_ABI, provider);
+    const b = await token.balanceOf(userAddress);
+    const decimals = await token.decimals();
+    balanceP.textContent = `Balance: ${Number(b)/10**decimals} LCC`;
+  }catch(e){
+    balanceP.textContent="Balance: -";
+  }
+}
+
+/* Claim */
+async function claim() {
+  if(CAPTCHA_REQUIRED && grecaptcha.getResponse().length===0){
+    statusEl.textContent="⚠️ Complete reCAPTCHA";
+    return;
+  }
+  try{
+    claimBtn.disabled=true;
+    statusEl.textContent="🌑 Aligning eclipse...";
+    await startLoader();
+    const res = await fetch("/api/claim",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({wallet:userAddress})
+    });
+    const data = await res.json();
+    stopLoader();
+    if(data.success){
+      success.classList.remove("hidden");
+      statusEl.textContent="🎉 LCC Claimed!";
+      updateBalance();
+      grecaptcha.reset();
+      startCooldown(12*60*60);
+    } else {
+      statusEl.textContent="❌ " + data.error;
+      claimBtn.disabled=false;
+    }
+  }catch(e){
+    stopLoader();
+    statusEl.textContent="❌ Claim failed";
+    claimBtn.disabled=false;
+    console.log(e);
+  }
+}
+
+/* Cooldown */
+function startCooldown(sec){
+  let r = sec;
+  claimBtn.disabled=true;
+  const t = setInterval(()=>{
+    const h=Math.floor(r/3600);
+    const m=Math.floor((r%3600)/60);
+    const s=r%60;
+    statusEl.textContent=`⏳ Next claim in ${h}h ${m}m ${s}s`;
+    r--;
+    if(r<0){clearInterval(t);claimBtn.disabled=false;statusEl.textContent="🚀 You can claim again!";}
+  },1000);
 }
 
 /* EVENTS */
-document.getElementById("mmBtn").onclick = connectMetaMask;
-document.getElementById("wcBtn").onclick = connectWalletConnect;
-document.getElementById("claimBtn").onclick = claim;
+mmBtn.onclick = connectMetaMask;
+wcBtn.onclick = connectWalletConnect;
+claimBtn.onclick = claim;
 </script>
-
 </body>
   </html>
