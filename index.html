@@ -11,7 +11,7 @@
 <!-- Ethers.js -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
 
-<!-- Web3Modal v2 -->
+<!-- Web3Modal -->
 <script type="module">
   import { Web3Modal } from "https://unpkg.com/@web3modal/standalone@2.7.2/dist/index.js";
   window.Web3Modal = Web3Modal;
@@ -21,7 +21,17 @@
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <style>
-html,body{margin:0;padding:0;font-family:Poppins,sans-serif;background:#02010a;color:white;overflow-x:hidden;}
+html,body{
+  margin:0; padding:0; min-height:100%;
+  font-family:Poppins,sans-serif;
+  background:
+    radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),
+    radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),
+    radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),
+    #02010a;
+  color:white; overflow-x:hidden;
+}
+/* Stars */
 #stars{position:fixed;inset:0;z-index:0;pointer-events:none}
 .star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:.8;animation:twinkle 3s infinite}
 @keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.2}}
@@ -34,15 +44,23 @@ html,body{margin:0;padding:0;font-family:Poppins,sans-serif;background:#02010a;c
 .moon{position:absolute;inset:0;background:#02010a;border-radius:50%;transform:translateX(-120%);animation:eclipseMove 2s linear infinite}
 @keyframes eclipseMove{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 
-/* Pop-up Modal */
+/* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .3s;}
 .modal-bg.show{opacity:1;pointer-events:auto;}
 .modal-content{background:rgba(10,10,20,0.95);padding:2rem;border-radius:2rem;max-width:400px;text-align:center;position:relative;overflow:hidden;}
 .modal-content h2{font-size:2rem;margin-bottom:1rem;}
-.modal-close{position:absolute;top:1rem;right:1rem;cursor:pointer;font-size:1.5rem;}
-/* Planet animation */
-.planet{width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,#00ffe5,#0066ff);margin:1rem auto;animation:planetSpin 3s linear infinite}
+.modal-close{position:absolute;top:1rem;right:1rem;cursor:pointer;font-size:1.5rem}
+
+/* Planets */
+.planet-container{position:relative;width:150px;height:150px;margin:1rem auto;}
+.planet{position:absolute;border-radius:50%;width:40px;height:40px;box-shadow:0 0 15px #00ffe5;animation:planetSpin 4s linear infinite;}
+.orbit{position:absolute;border:1px solid rgba(255,255,255,0.3);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);width:100px;height:100px;animation:orbitRotate 6s linear infinite;}
 @keyframes planetSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes orbitRotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+/* Shooting Stars */
+.shooting-star{position:absolute;width:2px;height:80px;background:linear-gradient(white, transparent);top:0;left:50%;opacity:0;animation:shoot 2s linear infinite;}
+@keyframes shoot{0%{transform:translateX(0) translateY(0) rotate(45deg);opacity:1}100%{transform:translateX(300px) translateY(300px) rotate(45deg);opacity:0}}
 </style>
 </head>
 <body>
@@ -57,21 +75,16 @@ html,body{margin:0;padding:0;font-family:Poppins,sans-serif;background:#02010a;c
 <section class="flex justify-center px-4 relative z-10">
   <div class="card shadow-2xl w-full max-w-lg">
 
-    <!-- Wallet Connect -->
     <button id="connectBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🔗 Connect Wallet</button>
 
-    <!-- reCAPTCHA -->
     <div class="mb-4">
       <div class="g-recaptcha" data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
     </div>
 
-    <!-- Claim -->
     <button id="claimBtn" disabled class="w-full bg-pink-500 py-3 rounded-xl font-bold hover:scale-105 transition">🚀 Claim LCC</button>
 
-    <!-- Status -->
     <p id="status" class="mt-4 text-center"></p>
 
-    <!-- Loader -->
     <div id="eclipseLoader" class="hidden mt-6 flex flex-col items-center">
       <div class="eclipse"><div class="sun"></div><div class="moon"></div></div>
       <p id="loadPercent" class="mt-3 text-sm">0%</p>
@@ -80,12 +93,18 @@ html,body{margin:0;padding:0;font-family:Poppins,sans-serif;background:#02010a;c
   </div>
 </section>
 
-<!-- Pop-up Modal for Balance & Celebration -->
+<!-- Modal for Balance & Celebration -->
 <div id="modal" class="modal-bg">
   <div class="modal-content">
     <span id="modalClose" class="modal-close">&times;</span>
     <h2>🌍 LCC Claimed!</h2>
-    <div class="planet"></div>
+    <div class="planet-container">
+      <div class="orbit"></div>
+      <div class="planet" style="background:radial-gradient(circle,#00ffe5,#0066ff);top:50%;left:50%;"></div>
+      <div class="planet" style="background:radial-gradient(circle,#ff00ff,#ff2f80);top:50%;left:50%;animation-duration:5s;"></div>
+      <div class="shooting-star"></div>
+      <div class="shooting-star" style="animation-delay:1s;"></div>
+    </div>
     <p id="modalBalance">Balance: — LCC</p>
   </div>
 </div>
@@ -94,7 +113,6 @@ html,body{margin:0;padding:0;font-family:Poppins,sans-serif;background:#02010a;c
 
 <script type="module">
 import { Web3Modal } from "https://unpkg.com/@web3modal/standalone@2.7.2/dist/index.js";
-import { EthereumProvider } from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
 
 /* CONFIG */
 const CHAIN_ID = 11155111;
@@ -128,43 +146,40 @@ for(let i=0;i<150;i++){
 }
 
 /* Loader */
-function startLoader(){
-  loader.classList.remove("hidden");
-  let p=0;
-  return new Promise(res=>{
-    const i=setInterval(()=>{
-      p++; loadPercent.textContent=p+"%";
-      if(p>=100){clearInterval(i);res();}
-    },30);
-  });
-}
-function stopLoader(){
-  loader.classList.add("hidden");
-  loadPercent.textContent="0%";
-}
+function startLoader(){loader.classList.remove("hidden"); let p=0; return new Promise(res=>{const i=setInterval(()=>{p++; loadPercent.textContent=p+"%"; if(p>=100){clearInterval(i);res();}},30);});}
+function stopLoader(){loader.classList.add("hidden"); loadPercent.textContent="0%";}
 
-/* Web3Modal Setup */
+/* Web3Modal */
 let web3Modal;
 async function initWeb3Modal(){
   web3Modal = new Web3Modal({
     projectId: WC_PROJECT_ID,
     theme: "dark",
     accentColor: "purple",
-    ethereum:{chains:[CHAIN_ID], appName:"LCC Faucet"}
+    ethereum: { chains:[CHAIN_ID], appName:"LCC Faucet" }
   });
 }
 await initWeb3Modal();
 
-/* Connect Wallet */
+/* Connect Wallet with Wallet List & App Check */
 connectBtn.onclick = async () => {
   try{
-    status.textContent = "⏳ Connecting wallet...";
-    const connection = await web3Modal.connect();
+    status.textContent = "⏳ Loading wallet options...";
+    const connection = await web3Modal.openModal();
+
+    if(!connection){ // Wallet not installed
+      if(confirm("Wallet app not installed. Install MetaMask?")){
+        window.open("https://play.google.com/store/apps/details?id=io.metamask", "_blank");
+      }
+      return;
+    }
+
     provider = new ethers.BrowserProvider(connection);
     signer = await provider.getSigner();
     user = await signer.getAddress();
     status.textContent = "✅ Connected: "+user;
     claimBtn.disabled=false;
+
   }catch(e){
     console.error(e);
     status.textContent="❌ Wallet connection failed";
@@ -173,10 +188,7 @@ connectBtn.onclick = async () => {
 
 /* Claim */
 claimBtn.onclick = async () => {
-  if(grecaptcha.getResponse().length===0){
-    status.textContent="⚠️ Complete reCAPTCHA";
-    return;
-  }
+  if(grecaptcha.getResponse().length===0){status.textContent="⚠️ Complete reCAPTCHA"; return;}
   try{
     claimBtn.disabled=true;
     status.textContent="🌑 Aligning eclipse...";
@@ -191,7 +203,6 @@ claimBtn.onclick = async () => {
     await showModalBalance();
     status.textContent="🎉 LCC Claimed!";
     grecaptcha.reset();
-
     startCooldown(12*60*60);
   }catch(e){
     stopLoader();
@@ -234,4 +245,4 @@ function startCooldown(sec){
 }
 </script>
 </body>
-  </html>
+    </html>
