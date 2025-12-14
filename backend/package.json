@@ -1,23 +1,21 @@
 {
   "name": "lcc-faucet-backend",
   "version": "1.0.0",
-  "description": "Backend for LucrativeClix Coin (LCC) faucet",
-  "main": "index.js",
   "type": "module",
+  "main": "index.js",
   "scripts": {
-    "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "axios": "^1.5.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.0.3",
     "ethers": "^6.8.3",
     "express": "^4.18.2",
-    "mongoose": "^7.5.1",
-    "node-fetch": "^3.3.2",
-    "express-rate-limit": "^7.2.0"
+    "mongoose": "^7.5.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.3"
   }
 }
