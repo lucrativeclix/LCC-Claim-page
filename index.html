@@ -11,56 +11,53 @@
 <!-- Ethers.js -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
 
-<!-- Web3Modal -->
+<!-- WalletConnect v2 -->
 <script type="module">
-  import { Web3Modal } from "https://unpkg.com/@web3modal/standalone@2.7.2/dist/index.js";
-  window.Web3Modal = Web3Modal;
+  import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
+  window.EthereumProvider = EthereumProvider;
 </script>
 
 <!-- reCAPTCHA -->
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <style>
-html,body{
-  margin:0; padding:0; min-height:100%;
-  font-family:Poppins,sans-serif;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Poppins', sans-serif;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),
     radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),
     radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),
     #02010a;
-  color:white; overflow-x:hidden;
+  color: white;
 }
+
 /* Stars */
-#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
-.star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:.8;animation:twinkle 3s infinite}
-@keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.2}}
-.glow{text-shadow:0 0 15px #b300ff,0 0 30px #ff2fd1}
-.card{background:rgba(0,0,0,.65);backdrop-filter:blur(14px);border-radius:24px;padding:2rem;}
+#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.star { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; opacity: .8; animation: twinkle 3s infinite; }
+@keyframes twinkle { 0%,100%{opacity:.8}50%{opacity:.2} }
 
-/* Eclipse Loader */
-.eclipse{position:relative;width:120px;height:120px;margin:auto}
-.sun{position:absolute;inset:0;background:radial-gradient(circle,#ffd700,#ff9800);border-radius:50%;box-shadow:0 0 30px #ff9800}
-.moon{position:absolute;inset:0;background:#02010a;border-radius:50%;transform:translateX(-120%);animation:eclipseMove 2s linear infinite}
-@keyframes eclipseMove{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.glow { text-shadow: 0 0 15px #b300ff, 0 0 30px #ff2fd1; }
 
-/* Modal */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .3s;}
-.modal-bg.show{opacity:1;pointer-events:auto;}
-.modal-content{background:rgba(10,10,20,0.95);padding:2rem;border-radius:2rem;max-width:400px;text-align:center;position:relative;overflow:hidden;}
-.modal-content h2{font-size:2rem;margin-bottom:1rem;}
-.modal-close{position:absolute;top:1rem;right:1rem;cursor:pointer;font-size:1.5rem}
+.card { background: rgba(0,0,0,.65); backdrop-filter: blur(14px); border-radius: 24px; }
 
-/* Planets */
-.planet-container{position:relative;width:150px;height:150px;margin:1rem auto;}
-.planet{position:absolute;border-radius:50%;width:40px;height:40px;box-shadow:0 0 15px #00ffe5;animation:planetSpin 4s linear infinite;}
-.orbit{position:absolute;border:1px solid rgba(255,255,255,0.3);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);width:100px;height:100px;animation:orbitRotate 6s linear infinite;}
-@keyframes planetSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-@keyframes orbitRotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+/* Eclipse loader */
+.eclipse { position: relative; width: 120px; height: 120px; margin: auto; }
+.sun { position: absolute; inset: 0; background: radial-gradient(circle,#ffd700,#ff9800); border-radius: 50%; box-shadow: 0 0 30px #ff9800; }
+.moon { position: absolute; inset: 0; background: #02010a; border-radius: 50%; transform: translateX(-120%); animation: eclipseMove 2s linear infinite; }
+@keyframes eclipseMove { 0%{transform:translateX(-120%)}100%{transform:translateX(120%)} }
 
-/* Shooting Stars */
-.shooting-star{position:absolute;width:2px;height:80px;background:linear-gradient(white, transparent);top:0;left:50%;opacity:0;animation:shoot 2s linear infinite;}
-@keyframes shoot{0%{transform:translateX(0) translateY(0) rotate(45deg);opacity:1}100%{transform:translateX(300px) translateY(300px) rotate(45deg);opacity:0}}
+/* Popup */
+#popup {
+  position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85);
+  display:none; flex-direction: column; justify-content:center; align-items:center; z-index:50;
+  color:white; text-align:center;
+}
+#popup .planet { width:150px; height:150px; border-radius:50%; background: radial-gradient(circle,#00f,#0ff); margin-bottom:20px; animation: rotate 4s linear infinite; }
+@keyframes rotate { 0%{transform:rotate(0deg)}100%{transform:rotate(360deg)} }
 </style>
 </head>
 <body>
@@ -69,21 +66,24 @@ html,body{
 
 <header class="text-center py-16 relative z-10">
   <h1 class="text-5xl font-extrabold glow">🌌 LucrativeClix Coin</h1>
-  <p class="mt-4 text-lg text-gray-200">Claim free LCC — Sepolia Network</p>
+  <p class="mt-4 text-lg text-gray-200">Claim free LCC every 12 hours — Sepolia</p>
 </header>
 
 <section class="flex justify-center px-4 relative z-10">
-  <div class="card shadow-2xl w-full max-w-lg">
+  <div class="card p-8 max-w-lg w-full shadow-2xl">
 
-    <button id="connectBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🔗 Connect Wallet</button>
+    <button id="mmBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-3 hover:scale-105 transition">🦊 Connect MetaMask</button>
+    <button id="wcBtn" class="w-full bg-indigo-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🔗 WalletConnect</button>
 
+    <!-- reCAPTCHA -->
     <div class="mb-4">
-      <div class="g-recaptcha" data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
+      <div class="g-recaptcha" data-sitekey="6LeleSosAAAAAA8PloP5yhosOYWt423WBT553lIp"></div>
     </div>
 
     <button id="claimBtn" disabled class="w-full bg-pink-500 py-3 rounded-xl font-bold hover:scale-105 transition">🚀 Claim LCC</button>
 
     <p id="status" class="mt-4 text-center"></p>
+    <p id="balance" class="mt-2 text-center text-green-400 hidden"></p>
 
     <div id="eclipseLoader" class="hidden mt-6 flex flex-col items-center">
       <div class="eclipse"><div class="sun"></div><div class="moon"></div></div>
@@ -93,47 +93,17 @@ html,body{
   </div>
 </section>
 
-<!-- Modal for Balance & Celebration -->
-<div id="modal" class="modal-bg">
-  <div class="modal-content">
-    <span id="modalClose" class="modal-close">&times;</span>
-    <h2>🌍 LCC Claimed!</h2>
-    <div class="planet-container">
-      <div class="orbit"></div>
-      <div class="planet" style="background:radial-gradient(circle,#00ffe5,#0066ff);top:50%;left:50%;"></div>
-      <div class="planet" style="background:radial-gradient(circle,#ff00ff,#ff2f80);top:50%;left:50%;animation-duration:5s;"></div>
-      <div class="shooting-star"></div>
-      <div class="shooting-star" style="animation-delay:1s;"></div>
-    </div>
-    <p id="modalBalance">Balance: — LCC</p>
-  </div>
-</div>
-
 <footer class="text-center py-12 text-gray-400 relative z-10">© 2025 LucrativeClix Coin</footer>
 
-<script type="module">
-import { Web3Modal } from "https://unpkg.com/@web3modal/standalone@2.7.2/dist/index.js";
+<!-- Popup for planet after claim -->
+<div id="popup">
+  <div class="planet"></div>
+  <h2>🚀 Claim Successful!</h2>
+  <p id="popupBalance"></p>
+  <button onclick="closePopup()" class="mt-4 bg-blue-600 py-2 px-4 rounded-xl">Close</button>
+</div>
 
-/* CONFIG */
-const CHAIN_ID = 11155111;
-const FAUCET_ADDRESS = "0x2c51c89b40b354614e77f9f5e75ccb36c1e43c49";
-const LCC_TOKEN_ADDRESS = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
-const FAUCET_ABI = ["function claim() external"];
-const ERC20_ABI = ["function balanceOf(address) view returns(uint256)","function decimals() view returns(uint8)"];
-const WC_PROJECT_ID = "6e7e3a7f736b30fcd2d054bdfbe17bc6";
-
-let provider, signer, user;
-
-/* DOM */
-const connectBtn = document.getElementById("connectBtn");
-const claimBtn = document.getElementById("claimBtn");
-const status = document.getElementById("status");
-const loader = document.getElementById("eclipseLoader");
-const loadPercent = document.getElementById("loadPercent");
-const modal = document.getElementById("modal");
-const modalClose = document.getElementById("modalClose");
-const modalBalance = document.getElementById("modalBalance");
-
+<script>
 /* Stars background */
 const stars=document.getElementById("stars");
 for(let i=0;i<150;i++){
@@ -145,104 +115,96 @@ for(let i=0;i<150;i++){
   stars.appendChild(s);
 }
 
-/* Loader */
-function startLoader(){loader.classList.remove("hidden"); let p=0; return new Promise(res=>{const i=setInterval(()=>{p++; loadPercent.textContent=p+"%"; if(p>=100){clearInterval(i);res();}},30);});}
-function stopLoader(){loader.classList.add("hidden"); loadPercent.textContent="0%";}
+/* Elements */
+const mmBtn=document.getElementById("mmBtn");
+const wcBtn=document.getElementById("wcBtn");
+const claimBtn=document.getElementById("claimBtn");
+const status=document.getElementById("status");
+const balanceP=document.getElementById("balance");
+const loader=document.getElementById("eclipseLoader");
+const loadPercent=document.getElementById("loadPercent");
+const popup=document.getElementById("popup");
+const popupBalance=document.getElementById("popupBalance");
 
-/* Web3Modal */
-let web3Modal;
-async function initWeb3Modal(){
-  web3Modal = new Web3Modal({
-    projectId: WC_PROJECT_ID,
-    theme: "dark",
-    accentColor: "purple",
-    ethereum: { chains:[CHAIN_ID], appName:"LCC Faucet" }
-  });
-}
-await initWeb3Modal();
+let provider, signer, user;
 
-/* Connect Wallet with Wallet List & App Check */
-connectBtn.onclick = async () => {
-  try{
-    status.textContent = "⏳ Loading wallet options...";
-    const connection = await web3Modal.openModal();
+/* Wallet Connectors */
+mmBtn.onclick = async () => {
+  if (!window.ethereum) { alert("MetaMask not installed"); return; }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = await provider.getSigner();
+  user = await signer.getAddress();
+  claimBtn.disabled = false;
+  status.textContent = "✅ Connected: " + user;
+};
 
-    if(!connection){ // Wallet not installed
-      if(confirm("Wallet app not installed. Install MetaMask?")){
-        window.open("https://play.google.com/store/apps/details?id=io.metamask", "_blank");
-      }
-      return;
-    }
-
-    provider = new ethers.BrowserProvider(connection);
+wcBtn.onclick = async () => {
+  try {
+    const wc = await window.EthereumProvider.init({ projectId: "6e7e3a7f736b30fcd2d054bdfbe17bc6", chains:[11155111] });
+    await wc.enable();
+    provider = new ethers.BrowserProvider(wc);
     signer = await provider.getSigner();
     user = await signer.getAddress();
-    status.textContent = "✅ Connected: "+user;
-    claimBtn.disabled=false;
-
-  }catch(e){
-    console.error(e);
-    status.textContent="❌ Wallet connection failed";
-  }
+    claimBtn.disabled = false;
+    status.textContent = "✅ WalletConnect connected: " + user;
+  } catch(e){ alert("WalletConnect failed or no wallet installed."); }
 };
+
+/* Loader */
+function startLoader() {
+  loader.classList.remove("hidden");
+  let p = 0;
+  return new Promise(res => {
+    const i = setInterval(() => {
+      p++; loadPercent.textContent = p + "%";
+      if(p>=100){ clearInterval(i); res(); }
+    }, 30);
+  });
+}
+function stopLoader(){ loader.classList.add("hidden"); loadPercent.textContent="0%"; }
+
+/* Popup */
+function showPopup(balance){ popupBalance.textContent = "Balance: " + balance + " LCC"; popup.style.display="flex"; }
+function closePopup(){ popup.style.display="none"; }
 
 /* Claim */
 claimBtn.onclick = async () => {
-  if(grecaptcha.getResponse().length===0){status.textContent="⚠️ Complete reCAPTCHA"; return;}
-  try{
-    claimBtn.disabled=true;
-    status.textContent="🌑 Aligning eclipse...";
-    await startLoader();
+  const captchaResponse = grecaptcha.getResponse();
+  if(!captchaResponse){ status.textContent="⚠️ Complete reCAPTCHA"; return; }
 
-    const faucet = new ethers.Contract(FAUCET_ADDRESS, FAUCET_ABI, signer);
-    const tx = await faucet.claim();
-    status.textContent="⛓️ Broadcasting transaction...";
-    await tx.wait();
+  claimBtn.disabled = true;
+  status.textContent="⏳ Claiming...";
+  await startLoader();
 
+  try {
+    // Call backend
+    const res = await fetch("https://your-backend-domain.com/claim", {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ address: user, captcha: captchaResponse })
+    });
+    const data = await res.json();
     stopLoader();
-    await showModalBalance();
-    status.textContent="🎉 LCC Claimed!";
-    grecaptcha.reset();
-    startCooldown(12*60*60);
-  }catch(e){
+
+    if(data.success){
+      status.textContent="🎉 Claim successful!";
+      balanceP.textContent = "Balance: " + data.balance + " LCC";
+      balanceP.classList.remove("hidden");
+      showPopup(data.balance);
+      grecaptcha.reset();
+    } else {
+      status.textContent="❌ " + (data.error || "Claim failed");
+      claimBtn.disabled=false;
+    }
+  } catch(e){
     stopLoader();
-    console.error(e);
-    status.textContent="❌ Cooldown or faucet empty";
+    console.log(e);
+    status.textContent="❌ Claim error";
     claimBtn.disabled=false;
   }
 };
-
-/* Show Balance in Modal */
-async function showModalBalance(){
-  try{
-    const token = new ethers.Contract(LCC_TOKEN_ADDRESS, ERC20_ABI, provider);
-    const raw = await token.balanceOf(user);
-    const dec = await token.decimals();
-    modalBalance.textContent = `Balance: ${Number(raw)/10**dec} LCC`;
-    modal.classList.add("show");
-  }catch(e){
-    console.error("Balance fetch failed",e);
-    modalBalance.textContent="Balance: Error";
-    modal.classList.add("show");
-  }
-}
-
-/* Close Modal */
-modalClose.onclick = ()=>modal.classList.remove("show");
-
-/* Cooldown */
-function startCooldown(sec){
-  let r=sec;
-  claimBtn.disabled=true;
-  const t=setInterval(()=>{
-    const h=Math.floor(r/3600);
-    const m=Math.floor((r%3600)/60);
-    const s=r%60;
-    status.textContent=`⏳ Next claim in ${h}h ${m}m ${s}s`;
-    r--;
-    if(r<0){clearInterval(t);claimBtn.disabled=false;status.textContent="🚀 You can claim again!";}
-  },1000);
-}
 </script>
+
 </body>
     </html>
