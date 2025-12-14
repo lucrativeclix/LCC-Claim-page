@@ -8,7 +8,7 @@
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Ethers v6 -->
+<!-- Ethers.js -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
 
 <!-- Web3Modal v2 -->
@@ -21,10 +21,12 @@
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <style>
-html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;background:radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),#02010a;color:white;overflow-x:hidden;}
-#stars{position:fixed;inset:0;z-index:0;pointer-events:none}.star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:.8;animation:twinkle 3s infinite}@keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.2}}
+html,body{margin:0;padding:0;font-family:Poppins,sans-serif;background:#02010a;color:white;overflow-x:hidden;}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:.8;animation:twinkle 3s infinite}
+@keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.2}}
 .glow{text-shadow:0 0 15px #b300ff,0 0 30px #ff2fd1}
-.card{background:rgba(0,0,0,.65);backdrop-filter:blur(14px);border-radius:24px}
+.card{background:rgba(0,0,0,.65);backdrop-filter:blur(14px);border-radius:24px;padding:2rem;}
 
 /* Eclipse Loader */
 .eclipse{position:relative;width:120px;height:120px;margin:auto}
@@ -32,18 +34,15 @@ html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;back
 .moon{position:absolute;inset:0;background:#02010a;border-radius:50%;transform:translateX(-120%);animation:eclipseMove 2s linear infinite}
 @keyframes eclipseMove{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 
-/* Celebration Stars */
-.celebration-star{
-  position:absolute;
-  border-radius:50%;
-  opacity:0.9;
-  pointer-events:none;
-  animation:shoot 1.5s linear forwards;
-}
-@keyframes shoot{
-  0%{transform:translate(0,0) scale(0.5);opacity:1;}
-  100%{transform:translate(var(--x), var(--y)) scale(1.5);opacity:0;}
-}
+/* Pop-up Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-bg.show{opacity:1;pointer-events:auto;}
+.modal-content{background:rgba(10,10,20,0.95);padding:2rem;border-radius:2rem;max-width:400px;text-align:center;position:relative;overflow:hidden;}
+.modal-content h2{font-size:2rem;margin-bottom:1rem;}
+.modal-close{position:absolute;top:1rem;right:1rem;cursor:pointer;font-size:1.5rem;}
+/* Planet animation */
+.planet{width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,#00ffe5,#0066ff);margin:1rem auto;animation:planetSpin 3s linear infinite}
+@keyframes planetSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -52,55 +51,70 @@ html,body{margin:0;padding:0;min-height:100%;font-family:Poppins,sans-serif;back
 
 <header class="text-center py-16 relative z-10">
   <h1 class="text-5xl font-extrabold glow">🌌 LucrativeClix Coin</h1>
-  <p class="mt-4 text-lg text-gray-200">Free LCC Faucet — Sepolia Network</p>
+  <p class="mt-4 text-lg text-gray-200">Claim free LCC — Sepolia Network</p>
 </header>
 
 <section class="flex justify-center px-4 relative z-10">
-  <div class="card p-8 max-w-lg w-full shadow-2xl">
+  <div class="card shadow-2xl w-full max-w-lg">
 
-    <button id="connectBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🦊 Connect Wallet</button>
+    <!-- Wallet Connect -->
+    <button id="connectBtn" class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-4 hover:scale-105 transition">🔗 Connect Wallet</button>
 
+    <!-- reCAPTCHA -->
     <div class="mb-4">
       <div class="g-recaptcha" data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
     </div>
 
+    <!-- Claim -->
     <button id="claimBtn" disabled class="w-full bg-pink-500 py-3 rounded-xl font-bold hover:scale-105 transition">🚀 Claim LCC</button>
 
-    <p id="balance" class="mt-4 text-center text-green-400">Balance: — LCC</p>
-    <p id="status" class="mt-2 text-center"></p>
+    <!-- Status -->
+    <p id="status" class="mt-4 text-center"></p>
 
+    <!-- Loader -->
     <div id="eclipseLoader" class="hidden mt-6 flex flex-col items-center">
       <div class="eclipse"><div class="sun"></div><div class="moon"></div></div>
       <p id="loadPercent" class="mt-3 text-sm">0%</p>
     </div>
 
-    <div id="celebrate" class="hidden mt-6 text-center text-3xl glow">✨ CLAIM SUCCESS ✨</div>
-
   </div>
 </section>
+
+<!-- Pop-up Modal for Balance & Celebration -->
+<div id="modal" class="modal-bg">
+  <div class="modal-content">
+    <span id="modalClose" class="modal-close">&times;</span>
+    <h2>🌍 LCC Claimed!</h2>
+    <div class="planet"></div>
+    <p id="modalBalance">Balance: — LCC</p>
+  </div>
+</div>
 
 <footer class="text-center py-12 text-gray-400 relative z-10">© 2025 LucrativeClix Coin</footer>
 
 <script type="module">
 import { Web3Modal } from "https://unpkg.com/@web3modal/standalone@2.7.2/dist/index.js";
+import { EthereumProvider } from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
 
 /* CONFIG */
 const CHAIN_ID = 11155111;
 const FAUCET_ADDRESS = "0x2c51c89b40b354614e77f9f5e75ccb36c1e43c49";
-const LCC_TOKEN_ADDRESS = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a"; // Replace with your LCC token
+const LCC_TOKEN_ADDRESS = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
 const FAUCET_ABI = ["function claim() external"];
 const ERC20_ABI = ["function balanceOf(address) view returns(uint256)","function decimals() view returns(uint8)"];
 const WC_PROJECT_ID = "6e7e3a7f736b30fcd2d054bdfbe17bc6";
 
 let provider, signer, user;
 
+/* DOM */
 const connectBtn = document.getElementById("connectBtn");
 const claimBtn = document.getElementById("claimBtn");
 const status = document.getElementById("status");
-const celebrate = document.getElementById("celebrate");
 const loader = document.getElementById("eclipseLoader");
 const loadPercent = document.getElementById("loadPercent");
-const balanceP = document.getElementById("balance");
+const modal = document.getElementById("modal");
+const modalClose = document.getElementById("modalClose");
+const modalBalance = document.getElementById("modalBalance");
 
 /* Stars background */
 const stars=document.getElementById("stars");
@@ -129,42 +143,28 @@ function stopLoader(){
   loadPercent.textContent="0%";
 }
 
-/* Update balance */
-async function updateBalance(){
-  if(!signer) return;
-  try{
-    const token=new ethers.Contract(LCC_TOKEN_ADDRESS,ERC20_ABI,provider);
-    const rawBalance=await token.balanceOf(user);
-    const decimals=await token.decimals();
-    balanceP.textContent=`Balance: ${Number(rawBalance)/10**decimals} LCC`;
-  }catch(e){
-    console.error("Balance fetch failed", e);
-    balanceP.textContent="Balance: Error";
-  }
-}
-
-/* Web3Modal Connect */
+/* Web3Modal Setup */
 let web3Modal;
-
 async function initWeb3Modal(){
   web3Modal = new Web3Modal({
     projectId: WC_PROJECT_ID,
     theme: "dark",
     accentColor: "purple",
-    ethereum: { appName: "LCC Faucet", chains: [CHAIN_ID] }
+    ethereum:{chains:[CHAIN_ID], appName:"LCC Faucet"}
   });
 }
 await initWeb3Modal();
 
+/* Connect Wallet */
 connectBtn.onclick = async () => {
   try{
-    status.textContent="⏳ Connecting wallet...";
+    status.textContent = "⏳ Connecting wallet...";
     const connection = await web3Modal.connect();
     provider = new ethers.BrowserProvider(connection);
     signer = await provider.getSigner();
     user = await signer.getAddress();
-    status.textContent = "✅ Connected: " + user;
-    claimBtn.disabled = false;
+    status.textContent = "✅ Connected: "+user;
+    claimBtn.disabled=false;
   }catch(e){
     console.error(e);
     status.textContent="❌ Wallet connection failed";
@@ -182,26 +182,42 @@ claimBtn.onclick = async () => {
     status.textContent="🌑 Aligning eclipse...";
     await startLoader();
 
-    const c = new ethers.Contract(FAUCET_ADDRESS, FAUCET_ABI, signer);
-    const tx = await c.claim();
+    const faucet = new ethers.Contract(FAUCET_ADDRESS, FAUCET_ABI, signer);
+    const tx = await faucet.claim();
     status.textContent="⛓️ Broadcasting transaction...";
     await tx.wait();
 
     stopLoader();
-    triggerCelebration(); // <-- new celebration function
-    celebrate.classList.remove("hidden");
+    await showModalBalance();
     status.textContent="🎉 LCC Claimed!";
-    await updateBalance();
+    grecaptcha.reset();
 
     startCooldown(12*60*60);
-    grecaptcha.reset();
   }catch(e){
     stopLoader();
     console.error(e);
-    status.textContent="❌ Cooldown active or faucet empty";
+    status.textContent="❌ Cooldown or faucet empty";
     claimBtn.disabled=false;
   }
 };
+
+/* Show Balance in Modal */
+async function showModalBalance(){
+  try{
+    const token = new ethers.Contract(LCC_TOKEN_ADDRESS, ERC20_ABI, provider);
+    const raw = await token.balanceOf(user);
+    const dec = await token.decimals();
+    modalBalance.textContent = `Balance: ${Number(raw)/10**dec} LCC`;
+    modal.classList.add("show");
+  }catch(e){
+    console.error("Balance fetch failed",e);
+    modalBalance.textContent="Balance: Error";
+    modal.classList.add("show");
+  }
+}
+
+/* Close Modal */
+modalClose.onclick = ()=>modal.classList.remove("show");
 
 /* Cooldown */
 function startCooldown(sec){
@@ -213,32 +229,8 @@ function startCooldown(sec){
     const s=r%60;
     status.textContent=`⏳ Next claim in ${h}h ${m}m ${s}s`;
     r--;
-    if(r<0){
-      clearInterval(t);
-      claimBtn.disabled=false;
-      status.textContent="🚀 You can claim again!";
-    }
+    if(r<0){clearInterval(t);claimBtn.disabled=false;status.textContent="🚀 You can claim again!";}
   },1000);
-}
-
-/* Starburst Celebration */
-function triggerCelebration(){
-  for(let i=0;i<50;i++){
-    const star=document.createElement("div");
-    star.className="celebration-star";
-    const size=Math.random()*6 + 4; // 4px to 10px
-    star.style.width=size+"px";
-    star.style.height=size+"px";
-    star.style.background=["#FFD700","#FF2FD1","#00E5FF","#FFFFFF"][Math.floor(Math.random()*4)];
-    star.style.left="50%";
-    star.style.top="50%";
-    const angle=Math.random()*2*Math.PI;
-    const distance=Math.random()*150+50;
-    star.style.setProperty('--x', distance*Math.cos(angle)+'px');
-    star.style.setProperty('--y', distance*Math.sin(angle)+'px');
-    document.body.appendChild(star);
-    setTimeout(()=>star.remove(),1500);
-  }
 }
 </script>
 </body>
