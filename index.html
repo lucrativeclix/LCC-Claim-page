@@ -13,8 +13,8 @@
 
 <!-- WalletConnect v2 -->
 <script type="module">
-  import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
-  window.EthereumProvider = EthereumProvider;
+import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
+window.EthereumProvider = EthereumProvider;
 </script>
 
 <!-- Google reCAPTCHA -->
@@ -80,7 +80,6 @@ html, body {
 button {
   transition: all 0.3s ease;
 }
-
 button:hover {
   transform: scale(1.05);
 }
@@ -223,18 +222,12 @@ const WC_PROJECT_ID = "6e7e3a7f736b30fcd2d054bdfbe17bc6";
 const LCC_TOKEN = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
 
 /* =========================
-   GLOBAL STATE (FIX)
+   GLOBAL STATE
 ========================= */
 let provider = null;
 let signer = null;
 let userAddress = null;
-let isConnected = false;
-  
-/* =========================
-   STATE
-========================= */
-let provider, signer, user;
-let wcProvider;
+let wcProvider = null;
 
 /* =========================
    HELPER FUNCTIONS
@@ -243,84 +236,9 @@ function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-async function initWalletConnect() {
-  wcProvider = await EthereumProvider.init({
-    projectId: WC_PROJECT_ID,
-    chains: [CHAIN_ID],
-    showQrModal: true
-  });
-  await wcProvider.enable();
-  provider = new ethers.BrowserProvider(wcProvider);
-  signer = await provider.getSigner();
-  user = await signer.getAddress();
-  updateUIConnected();
-}
-
 /* =========================
-   CONNECT WALLET
+   UPDATE UI AFTER CONNECT
 ========================= */
-document.getElementById("connectBtn").onclick = async () => {
-  // Desktop MetaMask
-  if (window.ethereum && !isMobile()) {
-    return connectMetaMask();
-  }
-
-  // Mobile → deep link to MetaMask app
-  if (isMobile()) {
-    const dapp = window.location.href.replace(/^https?:\/\//,"");
-    
-    return;
-  }
-
-  // WalletConnect fallback
-  try {
-    await initWalletConnect();
-  } catch(err){
-    document.getElementById("walletStatus").textContent="❌ Wallet not detected";
-  }
-};
-
-async function connectMetaMask() {
-  try {
-    if (!window.ethereum) {
-      alert("MetaMask not detected");
-      return;
-    }
-
-    provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-
-    signer = await provider.getSigner();
-    userAddress = await signer.getAddress();
-    isConnected = true;
-
-    localStorage.setItem("lcc_connected", "true");
-
-    updateUIConnected();
-    updateBalance();
-
-  } catch (err) {
-    console.error(err);
-    document.getElementById("walletStatus").textContent =
-      "❌ Connection failed";
-  }
-  }
-
-function updateUIConnected(){
-  document.getElementById("walletStatus").textContent = "✅ Connected: "+user.slice(0,6)+"..."+user.slice(-4);
-  enableClaim();
-  updateBalance();
-}
-
-/* =========================
-   ENABLE CLAIM
-========================= */
-function enableClaim(){
-  const btn=document.getElementById("claimBtn");
-  btn.disabled=false;
-  btn.classList.remove("opacity-50","cursor-not-allowed");
-}
-  
 function updateUIConnected() {
   const btn = document.getElementById("connectBtn");
   const status = document.getElementById("walletStatus");
@@ -330,41 +248,136 @@ function updateUIConnected() {
   btn.classList.add("opacity-60", "cursor-not-allowed");
 
   status.textContent =
-    "Connected: " +
-    userAddress.slice(0, 6) +
-    "..." +
-    userAddress.slice(-4);
+    "Connected: " + userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
 
   enableClaim();
-  }
-  
+  updateBalance();
+}
+
 /* =========================
-   UPDATE BALANCE
+   ENABLE CLAIM
 ========================= */
-async function updateBalance(){
-  try{
-    const abi=["function balanceOf(address) view returns(uint256)","function decimals() view returns(uint8)"];
-    const token=new ethers.Contract(LCC_TOKEN,abi,provider);
-    const bal=await token.balanceOf(user);
-    const dec=await token.decimals();
-    document.getElementById("balance").textContent="Balance: "+(Number(bal)/10**dec).toFixed(4)+" LCC";
-  } catch(e){
-    document.getElementById("balance").textContent="Balance: -";
+function enableClaim() {
+  const btn = document.getElementById("claimBtn");
+  btn.disabled = false;
+  btn.classList.remove("opacity-50","cursor-not-allowed");
+}
+
+/* =========================
+   CONNECT WALLET FUNCTION
+========================= */
+async function connectMetaMask() {
+  if (!window.ethereum) {
+    alert("MetaMask not detected");
+    return;
+  }
+
+  provider = new ethers.BrowserProvider(window.ethereum);
+
+  try {
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+
+    localStorage.setItem("lcc_connected", "true");
+
+    updateUIConnected();
+  } catch (err) {
+    console.error(err);
+    document.getElementById("walletStatus").textContent = "❌ Connection failed";
   }
 }
 
 /* =========================
-   CLAIM FUNCTION
+   CONNECT BUTTON EVENT
 ========================= */
-document.getElementById("claimBtn").onclick=async ()=>{
-  if(!grecaptcha.getResponse()){
+document.getElementById("connectBtn").onclick = async () => {
+  if (window.ethereum && !isMobile()) {
+    await connectMetaMask();
+  } else if (isMobile()) {
+    const dapp = window.location.href.replace(/^https?:\/\//,"");
+    window.location.href = `https://metamask.app.link/dapp/${dapp}`;
+  } else {
+    // fallback WalletConnect
+    try {
+      wcProvider = await EthereumProvider.init({
+        projectId: WC_PROJECT_ID,
+        chains: [CHAIN_ID],
+        showQrModal: true
+      });
+      await wcProvider.enable();
+      provider = new ethers.BrowserProvider(wcProvider);
+      signer = await provider.getSigner();
+      userAddress = await signer.getAddress();
+      updateUIConnected();
+    } catch(err){
+      document.getElementById("walletStatus").textContent="❌ Wallet not detected";
+    }
+  }
+};
+
+/* =========================
+   AUTO RECONNECT ON LOAD
+========================= */
+window.addEventListener("load", async () => {
+  if (window.ethereum && localStorage.getItem("lcc_connected")) {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+    updateUIConnected();
+  }
+});
+
+/* =========================
+   HANDLE ACCOUNT & NETWORK CHANGES
+========================= */
+if(window.ethereum){
+  window.ethereum.on("accountsChanged", async (accounts) => {
+    if(accounts.length===0){
+      localStorage.removeItem("lcc_connected");
+      location.reload();
+    } else {
+      userAddress = accounts[0];
+      updateUIConnected();
+    }
+  });
+
+  window.ethereum.on("chainChanged", () => {
+    location.reload();
+  });
+}
+
+/* =========================
+   UPDATE BALANCE
+========================= */
+async function updateBalance(){
+  try {
+    const abi=[
+      "function balanceOf(address) view returns(uint256)",
+      "function decimals() view returns(uint8)"
+    ];
+    const token = new ethers.Contract(LCC_TOKEN, abi, provider);
+    const bal = await token.balanceOf(userAddress);
+    const dec = await token.decimals();
+    document.getElementById("balance").textContent = "Balance: " + (Number(bal)/10**dec).toFixed(4) + " LCC";
+  } catch(e){
+    document.getElementById("balance").textContent = "Balance: -";
+  }
+}
+
+/* =========================
+   CLAIM BUTTON FUNCTION
+========================= */
+document.getElementById("claimBtn").onclick = async () => {
+  if (!grecaptcha.getResponse()) {
     document.getElementById("status").textContent="⚠️ Complete reCAPTCHA";
     return;
   }
+
   document.getElementById("status").textContent="⛓️ Sending request...";
   startLoader();
 
-  // Backend call simulated
+  // Simulate backend call
   setTimeout(()=>{
     stopLoader();
     document.getElementById("success").classList.remove("hidden");
@@ -380,9 +393,9 @@ document.getElementById("claimBtn").onclick=async ()=>{
 function startLoader(){
   document.getElementById("loader").classList.remove("hidden");
   let p=0;
-  const i=setInterval(()=>{
+  const i = setInterval(()=>{
     p++;
-    document.getElementById("progress").textContent=p+"%";
+    document.getElementById("progress").textContent = p+"%";
     if(p>=100) clearInterval(i);
   },30);
 }
@@ -391,49 +404,7 @@ function stopLoader(){
   document.getElementById("loader").classList.add("hidden");
   document.getElementById("progress").textContent="0%";
 }
-
-/* =========================
-   HANDLING ACCOUNT & CHAIN CHANGES
-========================= */
-if(window.ethereum){
-  window.ethereum.on('accountsChanged',async ()=>{await connectMetaMask();});
-  window.ethereum.on('chainChanged',async ()=>{await connectMetaMask();});
-}
-  
-  window.addEventListener("load", async () => {
-  if (window.ethereum && localStorage.getItem("lcc_connected")) {
-    try {
-      provider = new ethers.BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-      userAddress = await signer.getAddress();
-      isConnected = true;
-
-      updateUIConnected();
-      updateBalance();
-    } catch {
-      localStorage.removeItem("lcc_connected");
-    }
-  }
-});
-
-  if (window.ethereum) {
-  window.ethereum.on("accountsChanged", (accounts) => {
-    if (accounts.length === 0) {
-      localStorage.removeItem("lcc_connected");
-      location.reload();
-    } else {
-      userAddress = accounts[0];
-      updateUIConnected();
-      updateBalance();
-    }
-  });
-
-  window.ethereum.on("chainChanged", () => {
-    location.reload();
-  });
-        }
-  
 </script>
 
 </body>
-  </html>
+                                                                    </html>
