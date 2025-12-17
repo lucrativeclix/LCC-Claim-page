@@ -260,7 +260,7 @@ document.getElementById("connectBtn").onclick = async () => {
   // Mobile → deep link to MetaMask app
   if (isMobile()) {
     const dapp = window.location.href.replace(/^https?:\/\//,"");
-    window.location.href = `https://metamask.app.link/dapp/${dapp}`;
+    
     return;
   }
 
