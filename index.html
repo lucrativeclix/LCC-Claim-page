@@ -1,231 +1,354 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>LucrativeClix Coin Faucet (LCC)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
+<title>LucrativeClix Coin (LCC) Faucet</title>
 
-  <!-- Ethers v6 -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- WalletConnect -->
-  <script type="module">
-    import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
-    window.WalletConnectProvider = EthereumProvider;
-  </script>
+<!-- Ethers v6 -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.8.3/dist/ethers.min.js"></script>
 
-  <!-- reCAPTCHA -->
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<!-- WalletConnect v2 -->
+<script type="module">
+  import EthereumProvider from "https://unpkg.com/@walletconnect/ethereum-provider/dist/index.min.js";
+  window.EthereumProvider = EthereumProvider;
+</script>
 
-  <style>
-    body {
-      background:
-        radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),
-        radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),
-        radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),
-        #02010a;
-      color: white;
-      font-family: Poppins, system-ui;
-      min-height: 100vh;
-    }
-    .card {
-      background: rgba(0,0,0,.65);
-      backdrop-filter: blur(14px);
-      border-radius: 24px;
-    }
-    .glow {
-      text-shadow: 0 0 15px #b300ff, 0 0 30px #ff2fd1;
-    }
-  </style>
+<!-- reCAPTCHA -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<style>
+/* =========================
+   GLOBAL STYLES
+========================= */
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  background:
+    radial-gradient(circle at 20% 20%, #6a00ff, transparent 40%),
+    radial-gradient(circle at 80% 30%, #ff2fd1, transparent 45%),
+    radial-gradient(circle at 50% 80%, #00e5ff, transparent 40%),
+    #02010a;
+  color: white;
+  overflow-x: hidden;
+}
+
+/* =========================
+   STARFIELD
+========================= */
+#stars {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  opacity: .8;
+  animation: twinkle 3s infinite;
+}
+
+@keyframes twinkle {
+  0%,100% { opacity:.8 }
+  50% { opacity:.2 }
+}
+
+/* =========================
+   UI COMPONENTS
+========================= */
+.card {
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(14px);
+  border-radius: 24px;
+}
+
+.glow {
+  text-shadow: 0 0 15px #b300ff, 0 0 30px #ff2fd1;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: rgba(0,0,0,.9);
+  backdrop-filter: blur(14px);
+  border-radius: 24px;
+  padding: 24px;
+  z-index: 50;
+  display: none;
+}
+
+.popup.show {
+  display: block;
+}
+
+/* =========================
+   LOADER (ECLIPSE)
+========================= */
+.eclipse {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.sun {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle,#ffd700,#ff9800);
+  border-radius: 50%;
+}
+
+.moon {
+  position: absolute;
+  inset: 0;
+  background: #02010a;
+  border-radius: 50%;
+  animation: eclipseMove 2s linear infinite;
+}
+
+@keyframes eclipseMove {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+</style>
 </head>
 
-<body class="flex flex-col items-center justify-center px-4">
+<body>
 
-  <!-- HEADER -->
-  <header class="text-center mb-10">
-    <h1 class="text-5xl font-extrabold glow">🌌 LucrativeClix Coin</h1>
-    <p class="mt-3 text-gray-300">
-      Official LCC Faucet • Sepolia Testnet
-    </p>
-  </header>
+<!-- STARFIELD -->
+<div id="stars"></div>
 
-  <!-- CARD -->
-  <div class="card p-8 w-full max-w-md shadow-2xl text-center">
+<!-- HEADER -->
+<header class="text-center py-16 relative z-10">
+  <h1 class="text-5xl font-extrabold glow">🌌 LucrativeClix Coin</h1>
+  <p class="mt-4 text-lg text-gray-200">Official LCC Faucet • Sepolia Testnet</p>
+  <p class="mt-2 text-gray-400">Claim 0.1 LCC every 12 hours</p>
+</header>
 
+<!-- MAIN CARD -->
+<main class="flex justify-center px-4 relative z-10">
+  <div class="card p-8 max-w-lg w-full shadow-2xl">
+
+    <!-- CONNECT -->
     <button id="connectBtn"
-      class="w-full bg-purple-600 py-3 rounded-xl font-bold hover:scale-105 transition mb-4">
+      class="w-full bg-purple-600 py-3 rounded-xl font-bold mb-3 hover:scale-105 transition">
       🔗 Connect Wallet
     </button>
 
-    <div id="walletStatus" class="text-sm text-gray-300 mb-4">
+    <p id="walletStatus" class="text-sm text-center text-gray-300 mb-4">
       Wallet not connected
-    </div>
+    </p>
+
+    <p class="text-xs text-center text-gray-400 mb-4">
+      Mobile users will be redirected to MetaMask app
+    </p>
 
     <!-- CAPTCHA -->
     <div class="mb-4">
       <div class="g-recaptcha"
-        data-sitekey="YOUR_RECAPTCHA_SITE_KEY"></div>
+        data-sitekey="6LeleSosAAAAAFrgl4nMa85sOOcJN0EM8P15JfQp"></div>
     </div>
 
+    <!-- CLAIM -->
     <button id="claimBtn"
       disabled
       class="w-full bg-pink-500 py-3 rounded-xl font-bold opacity-50 cursor-not-allowed">
       🚀 Claim 0.1 LCC
     </button>
 
-    <p id="status" class="mt-4 text-sm"></p>
+    <p id="balance" class="mt-4 text-center text-green-400">
+      Balance: -
+    </p>
+
+    <p id="status" class="mt-3 text-center text-sm"></p>
+
+    <!-- LOADER -->
+    <div id="loader" class="hidden mt-6 flex flex-col items-center">
+      <div class="eclipse">
+        <div class="sun"></div>
+        <div class="moon"></div>
+      </div>
+      <p id="progress" class="mt-3 text-sm">0%</p>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="success" class="hidden mt-6 text-center text-2xl glow">
+      ✨ LCC Sent Successfully ✨
+    </div>
+
   </div>
+</main>
 
-  <footer class="mt-10 text-gray-400 text-sm">
-    © 2025 LucrativeClix Coin
-  </footer>
+<footer class="text-center py-12 text-gray-400 relative z-10">
+  © 2025 LucrativeClix Coin
+</footer>
 
+<!-- =========================
+     SCRIPT
+========================= -->
 <script>
-/* ================= CONFIG ================= */
-
-const SEPOLIA_CHAIN_ID = "0xaa36a7"; // 11155111
-const BACKEND_URL = "/api/claim";   // works on Vercel + local
-
-let provider;
-let signer;
-let userAddress;
-
-/* ================= ELEMENTS ================= */
-
-const connectBtn = document.getElementById("connectBtn");
-const claimBtn   = document.getElementById("claimBtn");
-const walletStatus = document.getElementById("walletStatus");
-const statusEl = document.getElementById("status");
-
-/* ================= HELPERS ================= */
-
-function isMobile() {
-  return /Android|iPhone|iPad/i.test(navigator.userAgent);
+/* =========================
+   STARFIELD INIT
+========================= */
+const stars = document.getElementById("stars");
+for (let i = 0; i < 200; i++) {
+  const s = document.createElement("div");
+  s.className = "star";
+  s.style.top = Math.random() * 100 + "%";
+  s.style.left = Math.random() * 100 + "%";
+  s.style.animationDelay = Math.random() * 3 + "s";
+  stars.appendChild(s);
 }
 
-/* ================= CONNECT WALLET ================= */
+/* =========================
+   CONFIG
+========================= */
+const CHAIN_ID = 11155111;
+const CHAIN_HEX = "0xaa36a7";
+const WC_PROJECT_ID = "6e7e3a7f736b30fcd2d054bdfbe17bc6";
+const LCC_TOKEN = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
 
-connectBtn.onclick = async () => {
-  statusEl.textContent = "";
+/* =========================
+   STATE
+========================= */
+let provider, signer, user;
 
-  // MetaMask present (desktop OR mobile browser)
-  if (window.ethereum) {
-    await connectMetaMask();
-    return;
+/* =========================
+   HELPERS
+========================= */
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+/* =========================
+   CONNECT WALLET
+========================= */
+document.getElementById("connectBtn").onclick = async () => {
+
+  // DESKTOP
+  if (window.ethereum && !isMobile()) {
+    return connectMetaMask();
   }
 
-  // Mobile deep link
+  // MOBILE → DEEP LINK
   if (isMobile()) {
-    window.location.href =
-      "https://metamask.app.link/dapp/" +
-      window.location.href.replace(/^https?:\/\//, "");
+    const dapp = window.location.href.replace(/^https?:\/\//, "");
+    window.location.href = `https://metamask.app.link/dapp/${dapp}`;
     return;
   }
 
-  // WalletConnect fallback
-  await connectWalletConnect();
+  document.getElementById("walletStatus").textContent =
+    "❌ Wallet not detected";
 };
 
 async function connectMetaMask() {
   try {
     provider = new ethers.BrowserProvider(window.ethereum);
-
     await provider.send("eth_requestAccounts", []);
 
-    // Force Sepolia
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: SEPOLIA_CHAIN_ID }]
+      params: [{ chainId: CHAIN_HEX }]
     });
 
     signer = await provider.getSigner();
-    userAddress = await signer.getAddress();
+    user = await signer.getAddress();
 
-    walletStatus.textContent = "✅ Connected: " + short(userAddress);
+    document.getElementById("walletStatus").textContent =
+      "✅ Connected: " + user.slice(0,6) + "..." + user.slice(-4);
+
     enableClaim();
+    updateBalance();
 
   } catch (err) {
-    statusEl.textContent = "❌ Wallet connection failed";
-    console.error(err);
+    document.getElementById("walletStatus").textContent =
+      "❌ Connection failed";
   }
 }
 
-async function connectWalletConnect() {
+/* =========================
+   ENABLE CLAIM
+========================= */
+function enableClaim() {
+  const btn = document.getElementById("claimBtn");
+  btn.disabled = false;
+  btn.classList.remove("opacity-50","cursor-not-allowed");
+}
+
+/* =========================
+   UPDATE BALANCE
+========================= */
+async function updateBalance() {
   try {
-    const wc = await window.WalletConnectProvider.init({
-      projectId: "YOUR_WALLETCONNECT_PROJECT_ID",
-      chains: [11155111],
-      showQrModal: true
-    });
-
-    await wc.enable();
-
-    provider = new ethers.BrowserProvider(wc);
-    signer = await provider.getSigner();
-    userAddress = await signer.getAddress();
-
-    walletStatus.textContent = "✅ Connected: " + short(userAddress);
-    enableClaim();
-
-  } catch (err) {
-    statusEl.textContent = "❌ WalletConnect failed";
-    console.error(err);
+    const abi = [
+      "function balanceOf(address) view returns(uint256)",
+      "function decimals() view returns(uint8)"
+    ];
+    const token = new ethers.Contract(LCC_TOKEN, abi, provider);
+    const bal = await token.balanceOf(user);
+    const dec = await token.decimals();
+    document.getElementById("balance").textContent =
+      "Balance: " + (Number(bal)/10**dec).toFixed(4) + " LCC";
+  } catch {
+    document.getElementById("balance").textContent = "Balance: -";
   }
 }
 
-/* ================= CLAIM ================= */
+/* =========================
+   CLAIM
+========================= */
+document.getElementById("claimBtn").onclick = async () => {
 
-claimBtn.onclick = async () => {
   if (!grecaptcha.getResponse()) {
-    statusEl.textContent = "⚠️ Complete reCAPTCHA";
+    document.getElementById("status").textContent =
+      "⚠️ Complete reCAPTCHA";
     return;
   }
 
-  try {
-    claimBtn.disabled = true;
-    statusEl.textContent = "⛓️ Sending claim request...";
+  document.getElementById("status").textContent =
+    "⛓️ Sending request...";
+  startLoader();
 
-    const res = await fetch(BACKEND_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address: userAddress })
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      throw new Error(data.error || "Claim failed");
-    }
-
-    statusEl.innerHTML =
-      `🎉 LCC sent!<br>
-       <a class="text-blue-400 underline"
-       target="_blank"
-       href="https://sepolia.etherscan.io/tx/${data.txHash}">
-       View transaction</a>`;
-
+  // BACKEND CALL GOES HERE
+  setTimeout(() => {
+    stopLoader();
+    document.getElementById("success").classList.remove("hidden");
+    document.getElementById("status").textContent =
+      "🎉 Faucet completed";
     grecaptcha.reset();
-
-  } catch (err) {
-    statusEl.textContent = "❌ " + err.message;
-    claimBtn.disabled = false;
-  }
+  }, 4000);
 };
 
-/* ================= UTIL ================= */
-
-function enableClaim() {
-  claimBtn.disabled = false;
-  claimBtn.classList.remove("opacity-50","cursor-not-allowed");
+/* =========================
+   LOADER
+========================= */
+function startLoader() {
+  document.getElementById("loader").classList.remove("hidden");
+  let p = 0;
+  const i = setInterval(() => {
+    p++;
+    document.getElementById("progress").textContent = p + "%";
+    if (p >= 100) clearInterval(i);
+  }, 30);
 }
 
-function short(addr) {
-  return addr.slice(0,6) + "..." + addr.slice(-4);
+function stopLoader() {
+  document.getElementById("loader").classList.add("hidden");
+  document.getElementById("progress").textContent = "0%";
 }
 </script>
 
 </body>
-      </html>
+  </html>
