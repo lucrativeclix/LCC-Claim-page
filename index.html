@@ -223,6 +223,14 @@ const WC_PROJECT_ID = "6e7e3a7f736b30fcd2d054bdfbe17bc6";
 const LCC_TOKEN = "0x873612265e161c3857d9223B1BA06Eb98D9dE65a";
 
 /* =========================
+   GLOBAL STATE (FIX)
+========================= */
+let provider = null;
+let signer = null;
+let userAddress = null;
+let isConnected = false;
+  
+/* =========================
    STATE
 ========================= */
 let provider, signer, user;
@@ -274,16 +282,29 @@ document.getElementById("connectBtn").onclick = async () => {
 
 async function connectMetaMask() {
   try {
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
     provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
-    await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});
+    await provider.send("eth_requestAccounts", []);
+
     signer = await provider.getSigner();
-    user = await signer.getAddress();
+    userAddress = await signer.getAddress();
+    isConnected = true;
+
+    localStorage.setItem("lcc_connected", "true");
+
     updateUIConnected();
-  } catch(err){
-    document.getElementById("walletStatus").textContent="❌ Connection failed";
+    updateBalance();
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById("walletStatus").textContent =
+      "❌ Connection failed";
   }
-}
+  }
 
 function updateUIConnected(){
   document.getElementById("walletStatus").textContent = "✅ Connected: "+user.slice(0,6)+"..."+user.slice(-4);
@@ -299,7 +320,24 @@ function enableClaim(){
   btn.disabled=false;
   btn.classList.remove("opacity-50","cursor-not-allowed");
 }
+  
+function updateUIConnected() {
+  const btn = document.getElementById("connectBtn");
+  const status = document.getElementById("walletStatus");
 
+  btn.textContent = "✅ Wallet Connected";
+  btn.disabled = true;
+  btn.classList.add("opacity-60", "cursor-not-allowed");
+
+  status.textContent =
+    "Connected: " +
+    userAddress.slice(0, 6) +
+    "..." +
+    userAddress.slice(-4);
+
+  enableClaim();
+  }
+  
 /* =========================
    UPDATE BALANCE
 ========================= */
@@ -361,6 +399,40 @@ if(window.ethereum){
   window.ethereum.on('accountsChanged',async ()=>{await connectMetaMask();});
   window.ethereum.on('chainChanged',async ()=>{await connectMetaMask();});
 }
+  
+  window.addEventListener("load", async () => {
+  if (window.ethereum && localStorage.getItem("lcc_connected")) {
+    try {
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      userAddress = await signer.getAddress();
+      isConnected = true;
+
+      updateUIConnected();
+      updateBalance();
+    } catch {
+      localStorage.removeItem("lcc_connected");
+    }
+  }
+});
+
+  if (window.ethereum) {
+  window.ethereum.on("accountsChanged", (accounts) => {
+    if (accounts.length === 0) {
+      localStorage.removeItem("lcc_connected");
+      location.reload();
+    } else {
+      userAddress = accounts[0];
+      updateUIConnected();
+      updateBalance();
+    }
+  });
+
+  window.ethereum.on("chainChanged", () => {
+    location.reload();
+  });
+        }
+  
 </script>
 
 </body>
